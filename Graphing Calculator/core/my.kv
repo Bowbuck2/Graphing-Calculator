@@ -1,0 +1,51 @@
+<Main>:
+    SideBar:
+        size_hint: .2,1
+        pos_hint: {'left': 0}
+    Graph:
+        size_hint: .8,1
+        pos_hint: {'right': 1}
+
+
+<SideBar>:
+    canvas.before:
+        Color:
+            rgba: .4,.4,.4,1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Label:
+        pos_hint: {'top': 1}
+        size_hint: 1, .05
+        text: 'Graphing Calculator'
+        text_size: self.size
+        halign: 'center'
+        valign: 'center'
+    BoxLayout:
+        pos_hint: {'bottom': 0}
+        size_hint: 1, .05
+        orientation: 'horizontal'
+        Button:
+            text: 'Quit'
+            on_press: exit(0)
+        Label:
+            text: 'Test'
+        Label:
+            text: 'Test'
+    InputField:
+        pos_hint: {'top': .95}
+        size_hint: 1, .9
+
+
+
+<Button>:
+    background_color: 0,0,0,0
+
+
+<WidgetColor>:
+    canvas.before:
+        Color:
+            rgba: self.r,self.b,self.g, .5
+        Rectangle:
+            size: root.size
+            pos: root.pos
