@@ -6,8 +6,10 @@
             pos: self.pos
             size:self.size
     AxisX:
-        size_hint: 1,.01
+        id: X
+        size_hint: 1,.1
     AxisY:
+        id: Y
         size_hint: .01,1
 
 <AxisX>:
@@ -16,7 +18,7 @@
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: self.size
+            size: self.size[0], self.size[1] / 5
 <AxisY>:
     canvas.before:
         Color:
@@ -24,6 +26,15 @@
         Rectangle:
             pos: self.pos
             size: self.size
+
+<Marker>:
+    canvas.before:
+        Color:
+            rgb: 0,0,0
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
 
 
 <SideBar>:
