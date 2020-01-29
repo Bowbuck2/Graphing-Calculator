@@ -1,46 +1,47 @@
-import numpy as np
 from kivy.app import App
-from kivy.clock import Clock
-from kivy.properties import NumericProperty
-from kivy.uix.boxlayout import BoxLayout
+from kivy.properties import NumericProperty, DictProperty, ListProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.widget import Widget
 
-from random import randint as ran
-
-import matplotlib
-
-matplotlib.use('module://kivy.garden.matplotlib.backend_kivy')
-import matplotlib.pyplot as plt
-
 
 class Main(FloatLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.add_widget(Graph(pos_hint={'right': 1}, size_hint=[.8, 1]))
+        self.add_widget(SideBar(pos_hint={'left': 0}, size_hint=[.2, 1]))
+
+
+class Graph(FloatLayout):
     pass
 
 
-fig, ax = plt.subplots()
-canvas = fig.canvas
+class AxisX(Widget):
+    pos_hint = DictProperty({'x': 0, 'y': 0.5})
 
-
-class Graph(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.fig, self.ax = plt.subplots(1)
-        self.plt_canvas = self.fig.canvas
-        self.add_widget(self.plt_canvas)
 
-        self.line = self.ax.plot([])[0]
-        self.i = 0
-        plt.show()
-        Clock.schedule_interval(self.update, 1)
+    def on_touch_move(self, touch):
+        if self.parent.collide_point(*touch.pos):
+            if touch.dy > 0:
+                self.pos_hint['y'] += abs(.005 * touch.dy)
+            elif touch.dy < 0:
+                self.pos_hint['y'] -= abs(.005 * touch.dy)
 
-    def update(self, *args):
-        self.line.set_xdata(np.arange(self.i))
-        self.line.set_ydata(np.arange(self.i))
-        self.i += 1
 
-        plt.draw()
+class AxisY(Widget):
+    pos_hint = DictProperty({'x': 0.5, 'y': 0})
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_touch_move(self, touch):
+        if self.parent.collide_point(*touch.pos):
+            if touch.dx > 0:
+                self.pos_hint['x'] += abs(.005 * touch.dx)
+            elif touch.dx < 0:
+                self.pos_hint['x'] -= abs(.005 * touch.dx)
 
 
 class SideBar(FloatLayout):
@@ -50,17 +51,6 @@ class SideBar(FloatLayout):
 class InputField(RecycleView):
     pass
 
-
-class WidgetColor(Widget):
-    r = NumericProperty()
-    g = NumericProperty()
-    b = NumericProperty()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.r = ran(0, 255) / 255
-        self.g = ran(0, 255) / 255
-        self.b = ran(0, 255) / 255
 
 
 class MyApp(App):
