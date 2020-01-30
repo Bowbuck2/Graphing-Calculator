@@ -7,10 +7,10 @@
             size:self.size
     AxisX:
         id: X
-        size_hint: 1,.1
+        size_hint: 1,1
     AxisY:
         id: Y
-        size_hint: .01,1
+        size_hint: 1,1
 
 <AxisX>:
     canvas.before:
@@ -18,14 +18,14 @@
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: self.size[0], self.size[1] / 5
+            size: self.size[0], 3
 <AxisY>:
     canvas.before:
         Color:
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: self.size
+            size: 3, self.size[1]
 
 <Marker>:
     canvas.before:
