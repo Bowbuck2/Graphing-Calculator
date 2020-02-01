@@ -5,27 +5,32 @@
         Rectangle:
             pos: self.pos
             size:self.size
-    AxisX:
-        id: X
-        size_hint: 1,1
-    AxisY:
-        id: Y
-        size_hint: 1,1
 
 <AxisX>:
-    canvas.before:
+    canvas:
+        PushMatrix:
+        Translate:
+            #y: self.y_axis.y
+    canvas.after:
         Color:
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
             size: self.size[0], 3
+        PopMatrix:
+
 <AxisY>:
-    canvas.before:
+    canvas:
+        PushMatrix:
+        Translate:
+            #x: self.x_axis.x
+    canvas.after:
         Color:
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
             size: 3, self.size[1]
+        PopMatrix:
 
 <Marker>:
     canvas.before:
@@ -34,6 +39,7 @@
         Rectangle:
             pos: self.pos
             size: self.size
+
 
 
 

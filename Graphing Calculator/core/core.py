@@ -1,10 +1,8 @@
 from kivy.app import App
-from kivy.clock import Clock
-from kivy.properties import NumericProperty, DictProperty, ListProperty
+from kivy.properties import DictProperty, ListProperty, ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
-from kivy.uix.widget import Widget
 
 
 class Main(FloatLayout):
@@ -17,6 +15,10 @@ class Main(FloatLayout):
 class Graph(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.axis_y = AxisY(size_hint=[1, 1], ctx=self)
+        self.axis_x = AxisX(size_hint=[1, 1], ctx=self)
+        self.add_widget(self.axis_x)
+        self.add_widget(self.axis_y)
 
         self.markers_count = 4
         self.mark_distance = 1 / self.markers_count
@@ -24,37 +26,34 @@ class Graph(FloatLayout):
         self.markers_y = []
         self.mark_init()
 
-        Clock.schedule_interval(self.marker_update, 0.00001)
-
     def mark_init(self):
         self.mark_gen('x')
+        self.mark_gen('y')
 
     def mark_gen(self, axis):
         for mark in range(self.markers_count):
             marker = Marker()
-            marker.text = str(round(mark * self.mark_distance, 2))
             if axis == 'x':
-                marker.size_hint = [.06, .02]
-                marker.pos_hint = {'x': self.ids.Y.pos_hint['x'], 'y': self.mark_distance * mark}
+                marker.size_hint = [.01, .02]
+                marker.pos_hint = {'x': self.mark_distance * mark + .1, 'y': self.axis_x.pos_hint['x'] - .007}
                 self.markers_x.append(marker)
-                self.ids.X.add_widget(marker)
+                self.axis_x.add_widget(marker)
             elif axis == 'y':
-                marker.size_hint = [.06, .02]
-                marker.pos_hint = {'x': self.mark_distance * mark, 'y': .5}
+                marker.size_hint = [.02, .01]
+                marker.pos_hint = {'x': self.axis_y.pos_hint['y'] - .007, 'y': self.mark_distance * mark + .1}
                 self.markers_y.append(marker)
-                self.ids.Y.add_widget(marker)
-
-    def marker_update(self, dt):
-
-        for marker in self.markers_y:
-            marker.pos_hint['y'] = self.ids.X.pos_hint['y']
-        for marker in self.markers_x:
-            marker.pos_hint['x'] = self.ids.Y.pos_hint['x']
+                self.axis_y.add_widget(marker)
 
 
 class AxisX(FloatLayout):
     pos_hint = DictProperty({'x': 0, 'y': 0.5})
     markers = ListProperty()
+    y_axis = ObjectProperty()
+
+    def __init__(self, ctx: Graph, **kwargs):
+        super().__init__(**kwargs)
+        self.y_axis = ctx.axis_y
+        print(self.y_axis.y)
 
     def on_touch_move(self, touch):
         if self.parent.collide_point(*touch.pos):
@@ -68,6 +67,11 @@ class AxisX(FloatLayout):
 class AxisY(FloatLayout):
     pos_hint = DictProperty({'x': 0.5, 'y': 0})
     markers = ListProperty()
+    x_axis = ObjectProperty()
+
+    def __init__(self, ctx: Graph, **kwargs):
+        super().__init__(**kwargs)
+        print(ctx.axis_x)
 
     def on_touch_move(self, touch):
         if self.parent.collide_point(*touch.pos):
