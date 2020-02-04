@@ -5,43 +5,54 @@
         Rectangle:
             pos: self.pos
             size:self.size
+    AxisX:
+        id: axis_x
+        size_hint: [1, 1]
+    AxisY:
+        id: axis_y
+        size_hint: [1, 1]
 
 <AxisX>:
-    canvas:
-        PushMatrix:
-        Translate:
-            #y: self.y_axis.y
-    canvas.after:
-        Color:
-            rgb: 0,0,0
-        Rectangle:
-            pos: self.pos
-            size: self.size[0], 3
-        PopMatrix:
-
-<AxisY>:
-    canvas:
-        PushMatrix:
-        Translate:
-            #x: self.x_axis.x
-    canvas.after:
-        Color:
-            rgb: 0,0,0
-        Rectangle:
-            pos: self.pos
-            size: 3, self.size[1]
-        PopMatrix:
-
-<Marker>:
     canvas.before:
         Color:
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
+            size: self.size[0], 3
+
+<AxisY>:
+    canvas.before:
+        Color:
+            rgb: 0,0,0
+        Rectangle:
+            pos: self.pos
+            size: 3, self.size[1]
+
+<MarkerX>:
+    canvas.before:
+        PushMatrix:
+        Translate:
+            x: self.axis_y.x if self.axis_y else .5
+    canvas.after:
+        Color:
+            rgb: 0,0,0
+        Rectangle:
+            pos: self.pos
             size: self.size
+        PopMatrix:
 
-
-
+<MarkerY>:
+    canvas.before:
+        PushMatrix:
+        Translate:
+            y: self.axis_x.y if self.axis_x else 1
+    canvas.after:
+        Color:
+            rgb: 0,0,0
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        PopMatrix:
 
 <SideBar>:
     canvas.before:
