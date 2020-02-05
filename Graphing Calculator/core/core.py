@@ -4,6 +4,7 @@ from kivy.properties import DictProperty, ObjectProperty, NumericProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
+from kivy.uix.widget import Widget
 
 
 class Main(FloatLayout):
@@ -14,82 +15,117 @@ class Main(FloatLayout):
 
 
 class Graph(FloatLayout):
-    pass
-
-
-class AxisX(FloatLayout):
-    pos_hint = DictProperty({'x': 0, 'y': 0.5})
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.markers_count = 5
-        self.mark_distance = 1 / self.markers_count
+        self.axis_x, self.axis_y = self.ids.axis_x, self.ids.axis_y
+        self.x_marker, self.y_marker = [], []
+        self.values = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
 
-        Clock.schedule_once(self.mark_gen, 1)
+        Clock.schedule_once(self.mark_init, .1)
 
-    def mark_gen(self, dt):
-        mark_values = {-2: -300, -1: -150, 1: 130, 2: 300}
-        for key, value in mark_values.items():
-            marker = MarkerX(self)
-            marker.text = str(key)
-            marker.size_hint = [.01, .02]
-            marker.x = value
-            marker.pos_hint['y'] = self.pos_hint['x']
-            self.add_widget(marker)
+    def mark_init(self, dt):
+        self.mark_gen('x')
+
+    def mark_gen(self, type: str):
+        if type == 'x':
+            for length, key in enumerate(self.values):
+                marker = MarkerX(self, key)
+                marker.x = length * 64
+                self.x_marker.append(marker)
+                self.axis_x.add_widget(marker)
+
+    def generate(self, type: str):
+        if type == '->':
+            new_key = self.values[-1] + 1
+
+            self.values.append(new_key)
+
+            marker = MarkerX(self, new_key)
+            marker.x = self.values[-1] * 64
+            self.axis_x.add_widget(marker)
+            self.values.pop(0)
+
+            print(f'Generated Marker {new_key}')
+        elif type == '<-':
+            new_key = self.values[0] - 1
+
+            self.values.append(new_key)
+
+            marker = MarkerX(self, new_key)
+            marker.x = self.values[0] * 64
+            self.axis_x.add_widget(marker)
+            self.values.pop(-1)
+
+            print(f'Generated Marker {new_key}')
 
     def on_touch_move(self, touch):
-        if self.parent.collide_point(*touch.pos):
-            speed = 0.0015
+        speed = 1
+        if self.collide_point(*touch.pos):
             if touch.dy > 0:
-                self.pos_hint['y'] += abs(speed * touch.dy)
+                self.axis_x.y += abs(speed * touch.dy)
             elif touch.dy < 0:
-                self.pos_hint['y'] -= abs(speed * touch.dy)
+                self.axis_x.y -= abs(speed * touch.dy)
+            if touch.dx > 0:
+                self.axis_y.x += abs(speed * touch.dx)
+            elif touch.dx < 0:
+                self.axis_y.x -= abs(speed * touch.dx)
 
 
-class MarkerX(Label):
+class MarkerX(Widget):
     axis_y = ObjectProperty(rebind=True)
+    axis_x = ObjectProperty(rebind=True)
+    key = NumericProperty()
 
-    def __init__(self, ctx: AxisX, **kwargs):
+    def __init__(self, ctx: Graph, key, **kwargs):
         super().__init__(**kwargs)
         self.ctx = ctx
-        self.axis_y = self.ctx.parent.ids.axis_y
+        self.axis_y = self.ctx.axis_y
+        self.axis_x = self.ctx.axis_x
+        self.key = key
 
+        Clock.schedule_interval(self.update, .1)
 
+    def update(self, dt):
+        self.graph_height = self.ctx.height
 
-class AxisY(FloatLayout):
-    pos_hint = DictProperty({'x': 0.5, 'y': 0})
+        marker_pos = self.pos[0] + self.axis_y.x
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        # self.ctx.parent.x#
+        if marker_pos < 160:
+            print(f'Deleted Marker {self.key}')
+            self.ctx.generate('->')
 
-        self.markers_count = 4
-        self.mark_distance = 1 / self.markers_count
+            self.ctx.axis_x.remove_widget(self)
+            Clock.unschedule(self.update, '->')
+        # elif marker_pos > 800:
+        #    print(f'Deleted Marker {self.key}')
+        #    self.ctx.generate('<-')
 
-        Clock.schedule_once(self.mark_gen, 1)
-
-    def mark_gen(self, dt):
-        for mark in range(self.markers_count):
-            marker = MarkerY(self)
-            marker.size_hint = [.02, .01]
-            marker.pos_hint = {'x': self.pos_hint['y'] - .007, 'y': self.mark_distance * mark - .4}
-            self.add_widget(marker)
-
-    def on_touch_move(self, touch):
-        if self.parent.collide_point(*touch.pos):
-            speed = 0.0015
-            if touch.dx > 0:
-                self.pos_hint['x'] += abs(speed * touch.dx)
-            elif touch.dx < 0:
-                self.pos_hint['x'] -= abs(speed * touch.dx)
+        #    self.ctx.axis_x.remove_widget(self)
+        #    Clock.unschedule(self.update, '->')
 
 
 class MarkerY(Label):
     axis_x = ObjectProperty(rebind=True)
+    graph_width = NumericProperty()
 
-    def __init__(self, ctx: AxisY, **kwargs):
+    def __init__(self, ctx: Graph, **kwargs):
         super().__init__(**kwargs)
         self.ctx = ctx
-        self.axis_x = self.ctx.parent.ids.axis_x
+        self.axis_x = self.ctx.axis_x
+
+        Clock.schedule_interval(self.update, .1)
+
+    def update(self, dt):
+        self.graph_width = self.ctx.width + 160
+
+
+class AxisX(Widget):
+    pass
+
+
+class AxisY(Widget):
+    pass
 
 
 class SideBar(FloatLayout):

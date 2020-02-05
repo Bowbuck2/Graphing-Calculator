@@ -7,39 +7,43 @@
             size:self.size
     AxisX:
         id: axis_x
-        size_hint: [1, 1]
+        size_hint: 1,1
+        x: 160
     AxisY:
         id: axis_y
-        size_hint: [1, 1]
+        size_hint: 1,1
+        x: 160
+
 
 <AxisX>:
     canvas.before:
         Color:
             rgb: 0,0,0
         Rectangle:
-            pos: self.pos
-            size: self.size[0], 3
+            pos: self.pos[0], root.center_y
+            size: root.width, 3
 
 <AxisY>:
     canvas.before:
         Color:
             rgb: 0,0,0
         Rectangle:
-            pos: self.pos
+            pos: root.center_x, self.pos[1]
             size: 3, self.size[1]
 
 <MarkerX>:
+    graph_height: None
     canvas.before:
         PushMatrix:
         Translate:
-            x: self.axis_y.x if self.axis_y else .5
-    canvas.after:
+            x: self.axis_y.x if self.axis_y else 1
         Color:
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: self.size
+            size: 1, root.ctx.height
         PopMatrix:
+    size: 50, self.graph_height if self.graph_height else 1
 
 <MarkerY>:
     canvas.before:
@@ -51,7 +55,7 @@
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: self.size
+            size: self.graph_width if self.graph_width else 1 ,1
         PopMatrix:
 
 <SideBar>:
