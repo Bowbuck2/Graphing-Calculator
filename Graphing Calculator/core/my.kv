@@ -35,6 +35,8 @@
 
 <MarkerX>:
     graph_height: None
+    marker_pos: None
+    axis_x_pos: None
     canvas.before:
         PushMatrix:
         Translate:
@@ -46,14 +48,24 @@
             size: 1, self.graph_height if self.graph_height else 1
         PopMatrix:
     size: 50, self.graph_height if self.graph_height else 1
+    Label:
+        color: 0,0,0,1
+        text: str(root.key)
+        pos: root.marker_pos  - 43 if root.marker_pos else 1, root.axis_x_pos if root.axis_x_pos else 1
+        canvas.before:
+            PushMatrix:
+            Translate:
+                x: root.axis_y.x if root.axis_y else 1
+            PopMatrix:
 
 <MarkerY>:
     graph_width: None
+    axis_y_pos: None
+    marker_pos: None
     canvas.before:
         PushMatrix:
         Translate:
             y: self.axis_x.y if self.axis_x else 1
-    canvas.after:
         Color:
             rgb: 0,0,0
         Rectangle:
@@ -61,6 +73,16 @@
             size: self.graph_width if self.graph_width else 1 ,1
         PopMatrix:
     size: self.graph_width if self.graph_width else 1, 50
+    Label:
+        color: 0,0,0,1
+        text: str(root.key) if root.key is not 0 else ''
+        pos: root.axis_y_pos if root.axis_y_pos else 1, root.marker_pos  - 43 if root.marker_pos else 1
+        canvas.before:
+            PushMatrix:
+            Translate:
+                y: root.axis_x.y if root.axis_x else 1
+            PopMatrix:
+
 
 <SideBar>:
     canvas.before:

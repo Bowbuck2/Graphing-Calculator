@@ -22,7 +22,8 @@ class Graph(FloatLayout):
         self.axis_x, self.axis_y = self.ids.axis_x, self.ids.axis_y
         self.x_marker, self.y_marker = [], []
 
-        self.values = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
+        self.values_x = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
+        self.values_y = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
         self.increase_x, self.increase_y = 10, 10
         self.decrease_x, self.decrease_y = 0, 0
 
@@ -34,13 +35,13 @@ class Graph(FloatLayout):
 
     def mark_gen(self, type: str):
         if type == 'x':
-            for length, key in enumerate(self.values):
+            for length, key in enumerate(self.values_x):
                 marker = MarkerX(self, key)
                 marker.x = length * 64
                 self.x_marker.append(marker)
                 self.axis_x.add_widget(marker)
         if type == 'y':
-            for length, key in enumerate(self.values):
+            for length, key in enumerate(self.values_y):
                 marker = MarkerY(self, key)
                 marker.y = length * 60
                 self.y_marker.append(marker)
@@ -48,46 +49,44 @@ class Graph(FloatLayout):
 
     def generate(self, type_change: str, marker_type):
         if type_change == '->':
-            print(f'Deleted Marker {self.values[0]}')
-            new_key = self.values[-1] + 1
-
-            self.values.append(new_key)
-
             if marker_type == AxisX:
+                new_key = self.values_x[-1] + 1
+                self.values_x.append(new_key)
                 self.increase_x += 1
                 self.decrease_x += 1
                 marker = MarkerX(self, new_key)
                 marker.x = self.increase_x * 64
+                self.axis_x.add_widget(marker)
+                self.values_x.pop(0)
             else:
+                new_key = self.values_y[-1] + 1
+                self.values_y.append(new_key)
                 self.increase_y += 1
                 self.decrease_y += 1
                 marker = MarkerY(self, new_key)
                 marker.y = self.increase_y * 60
-            self.axis_y.add_widget(marker)
-            self.values.pop(0)
+                self.axis_y.add_widget(marker)
+                self.values_y.pop(0)
 
-            print(f'Generated Marker {new_key}')
         elif type_change == '<-':
-            print(f'Deleted Marker {self.values[-1]}')
-            new_key = self.values[0] - 1
-
-            self.values.insert(0, new_key)
-
             if marker_type == AxisX:
+                new_key = self.values_x[0] - 1
+                self.values_x.insert(0, new_key)
                 self.decrease_x -= 1
                 self.increase_x -= 1
                 marker = MarkerX(self, new_key)
                 marker.x = self.decrease_x * 64
+                self.axis_x.add_widget(marker)
+                self.values_x.pop(-1)
             else:
+                new_key = self.values_y[0] - 1
+                self.values_y.insert(0, new_key)
                 self.decrease_y -= 1
                 self.increase_y -= 1
                 marker = MarkerY(self, new_key)
                 marker.y = self.decrease_y * 60
-
-            self.axis_x.add_widget(marker)
-            self.values.pop(-1)
-
-            print(f'Generated Marker {new_key}')
+                self.axis_y.add_widget(marker)
+                self.values_y.pop(-1)
 
     def on_touch_move(self, touch):
         speed = 1
@@ -113,17 +112,19 @@ class MarkerX(Widget):
         self.axis_y, self.axis_x = self.ctx.axis_y, self.ctx.axis_x
         self.prev_window_size = 640
         self.key = key
+        self.marker_pos = self.pos[0] + self.axis_y.x
 
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
         self.graph_height = self.ctx.height
+        self.axis_x_pos = self.axis_x.y + (self.axis_x.height / 2 - 40)
 
         parent_width = self.ctx.width
         self.marker_window_update(parent_width)
 
-        marker_pos = self.pos[0] + self.axis_y.x
-        self.add_marker(marker_pos)
+        self.marker_pos = self.pos[0] + self.axis_y.x
+        self.add_marker(self.marker_pos)
 
     def add_marker(self, marker_pos):
         if marker_pos < self.ctx.x:
@@ -159,17 +160,19 @@ class MarkerY(Label):
         self.axis_y, self.axis_x = self.ctx.axis_y, self.ctx.axis_x
         self.prev_window_size = 600
         self.key = key
+        self.marker_pos = self.pos[1] + self.axis_x.y
 
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
         self.graph_width = self.ctx.width + 160
+        self.axis_y_pos = self.axis_y.x + (self.axis_y.width / 2 - 40)
 
         parent_height = self.ctx.height
         self.marker_window_update(parent_height)
 
-        marker_pos = self.pos[1] + self.axis_x.y
-        self.add_marker(marker_pos)
+        self.marker_pos = self.pos[1] + self.axis_x.y
+        self.add_marker(self.marker_pos)
 
     def add_marker(self, marker_pos):
         if marker_pos < self.ctx.y - 64:
