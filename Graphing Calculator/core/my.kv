@@ -22,6 +22,7 @@
         Rectangle:
             pos: self.pos[0], root.center_y
             size: root.width, 3
+    pos: self.parent.pos
 
 <AxisY>:
     canvas.before:
@@ -30,6 +31,7 @@
         Rectangle:
             pos: root.center_x, self.pos[1]
             size: 3, self.size[1]
+    pos: self.parent.pos
 
 <MarkerX>:
     graph_height: None
@@ -41,11 +43,12 @@
             rgb: 0,0,0
         Rectangle:
             pos: self.pos
-            size: 1, root.ctx.height
+            size: 1, self.graph_height if self.graph_height else 1
         PopMatrix:
     size: 50, self.graph_height if self.graph_height else 1
 
 <MarkerY>:
+    graph_width: None
     canvas.before:
         PushMatrix:
         Translate:
@@ -57,11 +60,12 @@
             pos: self.pos
             size: self.graph_width if self.graph_width else 1 ,1
         PopMatrix:
+    size: self.graph_width if self.graph_width else 1, 50
 
 <SideBar>:
     canvas.before:
         Color:
-            rgba: .4,.4,.4,1
+            rgba: 1,1,1,0.2
         Rectangle:
             pos: self.pos
             size: self.size
