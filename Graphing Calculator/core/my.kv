@@ -72,7 +72,7 @@
             pos: self.pos
             size: self.graph_width if self.graph_width else 1 ,1
         PopMatrix:
-    size: self.graph_width if self.graph_width else 1, 50
+    size: self.graph_width + 160 if self.graph_width else 1, 50
     Label:
         color: 0,0,0,1
         text: str(root.key) if root.key is not 0 else ''

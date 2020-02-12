@@ -27,20 +27,61 @@ class Graph(FloatLayout):
         self.increase_x, self.increase_y = 10, 10
         self.decrease_x, self.decrease_y = 0, 0
 
+        self.modified_window_width = 640
+        self.modified_window_height = 600
+
         Clock.schedule_once(self.mark_init, .1)
+
+        Clock.schedule_interval(self.update, .1)
+
+    def update(self, dt):
+        self.updated_width = self.width - self.modified_window_width
+        self.updated_height = self.height - self.modified_window_height
+
+        self.resize_up()
+        #self.resize_down()
+
+    def resize_up(self):
+        if self.updated_width > 64:
+            new_key = self.values_x[-1] + 1
+            self.modified_window_width += 64
+            self.values_x.append(new_key)
+
+            marker = MarkerX(self, new_key)
+            self.increase_x += 1
+
+            marker.x = self.increase_x * 64
+            self.axis_x.add_widget(marker)
+        if self.updated_height > 60:
+            new_key = self.values_y[-1] + 1
+            self.modified_window_height += 60
+            self.values_y.append(new_key)
+
+            marker = MarkerY(self, new_key)
+            self.increase_y += 1
+
+            marker.y = self.increase_y * 60
+            self.axis_y.add_widget(marker)
+
+    def resize_down(self):
+        if len(self.values_x) * 64 > self.width + 64 and self.width != 100 and self.values_x[-1] != -5:
+            self.decrease_x -= 1
+            print(f'Removing Marker {self.values_x[0]} and {self.values_x[-1]}, {self.values_x}')
+            self.values_x.pop(0)
+            self.values_x.pop(-1)
 
     def mark_init(self, dt):
         self.mark_gen('x')
         self.mark_gen('y')
 
-    def mark_gen(self, type: str):
-        if type == 'x':
+    def mark_gen(self, type_change: str):
+        if type_change == 'x':
             for length, key in enumerate(self.values_x):
                 marker = MarkerX(self, key)
                 marker.x = length * 64
                 self.x_marker.append(marker)
                 self.axis_x.add_widget(marker)
-        if type == 'y':
+        if type_change == 'y':
             for length, key in enumerate(self.values_y):
                 marker = MarkerY(self, key)
                 marker.y = length * 60
@@ -124,15 +165,23 @@ class MarkerX(Widget):
         self.marker_window_update(parent_width)
 
         self.marker_pos = self.pos[0] + self.axis_y.x
-        self.add_marker(self.marker_pos)
+
+        if self.key in self.ctx.values_x:
+            self.add_marker(self.marker_pos)
+
+        self.remove_marker()
+
+    def remove_marker(self):
+        if self.key not in self.ctx.values_x:
+            self.ctx.axis_x.remove_widget(self)
 
     def add_marker(self, marker_pos):
-        if marker_pos < self.ctx.x:
+        if marker_pos + 1 < self.ctx.x:
             self.ctx.generate('->', AxisX)
 
             self.ctx.axis_x.remove_widget(self)
             Clock.unschedule(self.update, '->')
-        elif marker_pos > self.ctx.width + 224:
+        elif marker_pos - 1 > self.ctx.width + self.ctx.parent.children[0].width:
             self.ctx.generate('<-', AxisX)
 
             self.ctx.axis_x.remove_widget(self)
@@ -165,7 +214,7 @@ class MarkerY(Label):
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
-        self.graph_width = self.ctx.width + 160
+        self.graph_width = self.ctx.width + self.ctx.parent.children[0].width
         self.axis_y_pos = self.axis_y.x + (self.axis_y.width / 2 - 40)
 
         parent_height = self.ctx.height
@@ -175,7 +224,7 @@ class MarkerY(Label):
         self.add_marker(self.marker_pos)
 
     def add_marker(self, marker_pos):
-        if marker_pos < self.ctx.y - 64:
+        if marker_pos < self.ctx.y:
             self.ctx.generate('->', AxisY)
 
             self.ctx.axis_y.remove_widget(self)
