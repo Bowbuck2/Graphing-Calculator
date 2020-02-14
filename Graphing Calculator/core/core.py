@@ -22,7 +22,7 @@ class Graph(FloatLayout):
         super().__init__(**kwargs)
         self.axis_x, self.axis_y = self.ids.axis_x, self.ids.axis_y
 
-        Window.bind(on_resize=self.on_window_resize)
+        Window.bind(on_resize=self.on_window_resize, on_maximize=self.on_maximize, on_minimize=self.on_minimize)
         self.is_resizing = False
 
         self.resize_width_up, self.resize_width_down = False, False
@@ -46,7 +46,7 @@ class Graph(FloatLayout):
             elif touch.dx < 0:
                 self.axis_y.x -= abs(speed * touch.dx)
 
-    def on_window_resize(self, window, width, height):
+    def window_marker_gen(self):
         """
         Checks if Graph is Currently Being Resized
         """
@@ -63,7 +63,32 @@ class Graph(FloatLayout):
         elif self.height < self.prev_height:
             self.resize_height_down = True
 
+        self.axis_x.marker_window_update()
+        self.axis_y.marker_window_update()
+
         Clock.schedule_once(self.resize_reset, .1)
+
+    def on_minimize(self, *args):
+        """
+        Removes any Markers Not in the Current View
+        """
+        for marker in self.axis_x.children:
+            if marker.x > self.width or marker < 0:
+                print(f'Remove Marker {int(marker)}')
+                marker.is_deleted = True
+                marker.remove_marker()
+
+        for marker in self.axis_y.children:
+            if marker.y > self.height or marker < 0:
+                print(f'Remove Marker {int(marker)}')
+                marker.is_deleted = True
+                marker.remove_marker()
+
+    def on_maximize(self, *args):
+        self.window_marker_gen()
+
+    def on_window_resize(self, window, width, height):
+        self.window_marker_gen()
 
     def check_graph_size(self, width, height, dt):
         """
@@ -90,7 +115,6 @@ class AxisX(Widget):
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
-        self.marker_window_update()
         self.resize_window_marker()
 
 
@@ -127,9 +151,10 @@ class AxisX(Widget):
         """
         if self.parent.is_resizing:
             self.children = sorted(self.children, key=int)
+
             if self.parent.resize_width_up:
                 marker_diff = self.width - self.children[-1].x
-                if marker_diff >= 64:
+                if marker_diff >= 50:
                     self.generate('l-r')
                     self.generate('r-l')
             if self.parent.resize_width_down:
@@ -143,14 +168,21 @@ class AxisX(Widget):
         """
         Updates Positions Of Markers if Window is Resized
         """
-        if self.parent.resize_width_up:
-            updated_width = self.width - self.parent.prev_width
-            for marker in self.children:
-                marker.x += updated_width / 4
-        elif self.parent.resize_width_down:
-            updated_width = self.parent.prev_width - self.width
-            for marker in self.children:
-                marker.x -= updated_width / 4
+        y_pos = self.width / 2
+
+        try:
+            marker_0 = [marker for marker in self.children if int(marker) == 0][0]
+
+            if self.parent.resize_width_up:
+                updated_width = y_pos - marker_0.x
+                for marker in self.children:
+                    marker.x += updated_width
+            elif self.parent.resize_width_down:
+                updated_width = marker_0.x - y_pos
+                for marker in self.children:
+                    marker.x -= updated_width
+        except IndexError:
+            self.resize_window_marker()
 
 
 class AxisY(Widget):
@@ -160,7 +192,6 @@ class AxisY(Widget):
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
-        self.marker_window_update()
         self.resize_window_marker()
 
     def init_children(self, dt):
@@ -199,7 +230,7 @@ class AxisY(Widget):
             self.children = sorted(self.children, key=int)
             if self.parent.resize_height_up:
                 marker_diff = self.height - self.children[-1].y
-                if marker_diff >= 60:
+                if marker_diff >= 50:
                     self.generate('t-b')
                     self.generate('b-t')
             if self.parent.resize_height_down:
@@ -213,14 +244,21 @@ class AxisY(Widget):
         """
         Updates Positions Of Markers if Window is Resized
         """
-        if self.parent.resize_height_up:
-            updated_height = self.height - self.parent.prev_height
-            for marker in self.children:
-                marker.y += updated_height / 3.95
-        elif self.parent.resize_height_down:
-            updated_height = self.parent.prev_height - self.height
-            for marker in self.children:
-                marker.y -= updated_height / 3.95
+        x_pos = self.height / 2
+
+        try:
+            marker_0 = [marker for marker in self.children if int(marker) == 0][0]
+
+            if self.parent.resize_height_up:
+                updated_height = x_pos - marker_0.y
+                for marker in self.children:
+                    marker.y += updated_height
+            elif self.parent.resize_height_down:
+                updated_height = marker_0.y - x_pos
+                for marker in self.children:
+                    marker.y -= updated_height
+        except IndexError:
+            self.resize_window_marker()
 
 
 class Marker(Widget):
