@@ -105,10 +105,11 @@
         Button:
             text: 'Quit'
             on_press: exit(0)
+        Button:
+            text: 'Home'
+            on_press: root.graph.home()
         Label:
-            text: 'Test'
-        Label:
-            text: 'Test'
+            text: 'Settings'
     InputField:
         pos_hint: {'top': .95}
         size_hint: 1, .9

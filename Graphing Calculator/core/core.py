@@ -31,6 +31,14 @@ class Graph(FloatLayout):
         self.resize_height_up, self.resize_height_down = False, False
         self.prev_height = 600
 
+    def home(self):
+        """
+        Returns User to 0,0
+        """
+
+        self.axis_x.pos = self.parent.children[0].width, 0
+        self.axis_y.pos = self.parent.children[0].width, 0
+
     def on_touch_move(self, touch):
         """
         Updates Position of AxisX/AxisY
@@ -72,19 +80,25 @@ class Graph(FloatLayout):
         """
         Removes any Markers Not in the Current View
         """
-        for marker in self.axis_x.children:
-            if marker.x > self.width or marker < 0:
-                print(f'Remove Marker {int(marker)}')
-                marker.is_deleted = True
-                marker.remove_marker()
+        print('Fired')
+        # for marker in self.axis_x.children:
+        #    if marker.x > self.width or marker < 0:
+        #        print(f'Remove Marker {int(marker)}')
+        #        marker.is_deleted = True
+        #        marker.remove_marker()
 
-        for marker in self.axis_y.children:
-            if marker.y > self.height or marker < 0:
-                print(f'Remove Marker {int(marker)}')
-                marker.is_deleted = True
-                marker.remove_marker()
+        # for marker in self.axis_y.children:
+        #    if marker.y > self.height or marker < 0:
+        #        print(f'Remove Marker {int(marker)}')
+        #        marker.is_deleted = True
+        #        marker.remove_marker()
 
     def on_maximize(self, *args):
+        while len(self.axis_x.children) != 0:
+            self.axis_x.reset(), self.axis_y.reset()
+        self.axis_x.init_children(.1), self.axis_y.init_children(.1)
+
+        self.home()
         self.window_marker_gen()
 
     def on_window_resize(self, window, width, height):
@@ -108,6 +122,10 @@ class Graph(FloatLayout):
         self.resize_height_down = False
 
 
+class Axis(Widget):
+    pass
+
+
 class AxisX(Widget):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -115,8 +133,8 @@ class AxisX(Widget):
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
+        self.children = sorted(self.children, key=int)
         self.resize_window_marker()
-
 
     def init_children(self, dt):
         """Creating Basic Instance of Children X-Markers"""
@@ -145,20 +163,26 @@ class AxisX(Widget):
                 marker.x = self.children[0].x - 64
                 self.add_widget(marker)
 
+    def reset(self):
+        for marker in self.children:
+            marker.is_deleted = True
+
+        for marker in self.children:
+            marker.remove_marker()
+
     def resize_window_marker(self):
         """
         Adds/Removes Markers Depending on window size
         """
         if self.parent.is_resizing:
             self.children = sorted(self.children, key=int)
-
             if self.parent.resize_width_up:
                 marker_diff = self.width - self.children[-1].x
-                if marker_diff >= 50:
+                if marker_diff >= 64:
                     self.generate('l-r')
                     self.generate('r-l')
             if self.parent.resize_width_down:
-                if self.children[-1].x > self.width:
+                if self.children[-1].x >= self.width or self.children[0].x <= 0:
                     marker_one, marker_two = self.children[-1], self.children[0]
 
                     marker_one.is_deleted, marker_two.is_deleted = True, True
@@ -177,10 +201,12 @@ class AxisX(Widget):
                 updated_width = y_pos - marker_0.x
                 for marker in self.children:
                     marker.x += updated_width
+                self.resize_window_marker()
             elif self.parent.resize_width_down:
                 updated_width = marker_0.x - y_pos
                 for marker in self.children:
                     marker.x -= updated_width
+                self.resize_window_marker()
         except IndexError:
             self.resize_window_marker()
 
@@ -192,6 +218,7 @@ class AxisY(Widget):
         Clock.schedule_interval(self.update, .01)
 
     def update(self, dt):
+        self.children = sorted(self.children, key=int)
         self.resize_window_marker()
 
     def init_children(self, dt):
@@ -222,6 +249,13 @@ class AxisY(Widget):
                 marker.y = self.children[0].y - 60
                 self.add_widget(marker)
 
+    def reset(self):
+        for marker in self.children:
+            marker.is_deleted = True
+
+        for marker in self.children:
+            marker.remove_marker()
+
     def resize_window_marker(self):
         """
         Adds/Removes Markers Depending on window size
@@ -230,11 +264,11 @@ class AxisY(Widget):
             self.children = sorted(self.children, key=int)
             if self.parent.resize_height_up:
                 marker_diff = self.height - self.children[-1].y
-                if marker_diff >= 50:
+                if marker_diff >= 60:
                     self.generate('t-b')
                     self.generate('b-t')
             if self.parent.resize_height_down:
-                if self.children[-1].y > self.height:
+                if self.children[-1].y >= self.height or self.children[0].y <= 0:
                     marker_one, marker_two = self.children[-1], self.children[0]
 
                     marker_one.is_deleted, marker_two.is_deleted = True, True
@@ -253,10 +287,12 @@ class AxisY(Widget):
                 updated_height = x_pos - marker_0.y
                 for marker in self.children:
                     marker.y += updated_height
+                self.resize_window_marker()
             elif self.parent.resize_height_down:
                 updated_height = marker_0.y - x_pos
                 for marker in self.children:
                     marker.y -= updated_height
+                self.resize_window_marker()
         except IndexError:
             self.resize_window_marker()
 
@@ -275,6 +311,9 @@ class Marker(Widget):
         self.axis_y, self.axis_x = self.ctx.axis_y, self.ctx.axis_x
         self.key = key
         self.is_deleted = False
+
+    def remove_marker(self):
+        self.parent.remove_widget(self)
 
     def __int__(self):
         return self.key
@@ -304,9 +343,6 @@ class MarkerX(Marker):
             self.parent.remove_widget(self)
             Clock.unschedule(self.update)
 
-    def remove_marker(self):
-        self.parent.remove_widget(self)
-
 
 class MarkerY(Marker):
 
@@ -332,12 +368,14 @@ class MarkerY(Marker):
             self.parent.remove_widget(self)
             Clock.unschedule(self.update)
 
-    def remove_marker(self):
-        self.parent.remove_widget(self)
-
 
 class SideBar(FloatLayout):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        Clock.schedule_once(self.init_start, .1)
+
+    def init_start(self, dt):
+        self.graph = self.parent.children[1]
 
 
 class InputField(RecycleView):
