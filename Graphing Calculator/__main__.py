@@ -1,4 +1,4 @@
-from .core.core import MyApp
+from .Core.core import CoreApp
 
 if __name__ == '__main__':
-    MyApp().run()
+    CoreApp().run()

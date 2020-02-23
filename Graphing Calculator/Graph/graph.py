@@ -1,19 +1,12 @@
 from functools import partial
-
-from kivy.app import App
-from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty, NumericProperty
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.recycleview import RecycleView
+from kivy.clock import Clock
+from kivy.properties import ObjectProperty, NumericProperty
 from kivy.uix.widget import Widget
 
-
-class Main(FloatLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.add_widget(Graph(pos_hint={'right': 1}, size_hint=[.8, 1]))
-        self.add_widget(SideBar(pos_hint={'left': 0}, size_hint=[.2, 1]))
+from kivy.lang import Builder
+Builder.load_file('Graph/graph.kv')
 
 
 class Graph(FloatLayout):
@@ -77,6 +70,8 @@ class Graph(FloatLayout):
         Removes any Markers Not in the Current View
         """
         print('Fired')
+        self.home()
+
         # for marker in self.axis_x.children:
         #    if marker.x > self.width or marker < 0:
         #        print(f'Remove Marker {int(marker)}')
@@ -309,21 +304,3 @@ class MarkerY(Marker):
                 self.parent.generate('r-l')
                 self.parent.remove_widget(self)
                 Clock.unschedule(self.update)
-
-
-class SideBar(FloatLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        Clock.schedule_once(self.init_start, .1)
-
-    def init_start(self, dt):
-        self.graph = self.parent.children[1]
-
-
-class InputField(RecycleView):
-    pass
-
-
-class MyApp(App):
-    def build(self):
-        return Main()

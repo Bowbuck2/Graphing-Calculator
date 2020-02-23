@@ -1,0 +1,29 @@
+<SideBar>:
+    canvas.before:
+        Color:
+            rgba: 1,1,1,0.2
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Label:
+        pos_hint: {'top': 1}
+        size_hint: 1, .05
+        text: 'Graphing Calculator'
+        text_size: self.size
+        halign: 'center'
+        valign: 'center'
+    BoxLayout:
+        pos_hint: {'bottom': 0}
+        size_hint: 1, .05
+        orientation: 'horizontal'
+        Button:
+            text: 'Quit'
+            on_press: exit(0)
+        Button:
+            text: 'Home'
+            on_press: root.graph.home()
+        Label:
+            text: 'Settings'
+    InputField:
+        pos_hint: {'top': .95}
+        size_hint: 1, .9
