@@ -27,3 +27,42 @@
     InputField:
         pos_hint: {'top': .95}
         size_hint: 1, .9
+
+
+<InputField>:
+    viewclass: 'EquationInput'
+
+    RecycleGridLayout:
+        default_size: None, dp(50)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        cols: 1
+
+
+<EquationInput>
+    canvas.before:
+        Color:
+            rgba: 1,1,1,.4
+        Rectangle:
+            pos: self.pos[0], self.pos[1] + 2.5
+            size: self.size[0], self.size[1] - 5
+    TI:
+        size_hint: .8,.75
+        pos_hint: {'right': .95, 'top': .85}
+        italic: True
+        on_text: root.update_equation(self.text) if self.text is not '' else None
+        font_size: 20
+        halign: 'left'
+        multiline: False
+        hint_text: 'f(x) = '
+    Widget:
+        size_hint: .09, .75
+        pos_hint: {'right': .12, 'top': .85}
+        canvas:
+            Color:
+                rgb: root.r,root.g,root.b
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
