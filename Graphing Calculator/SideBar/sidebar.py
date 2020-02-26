@@ -3,6 +3,7 @@ from random import randrange
 import re
 
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.graphics.context_instructions import Color
 from kivy.graphics.vertex_instructions import Line
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty
@@ -65,6 +66,7 @@ class Equation(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         self.ctx, self.position = kwargs.get('ctx'), kwargs.get('position') or 0
         self.equation = ''
 
@@ -75,13 +77,6 @@ class Equation(FloatLayout):
                     'equation': str(self.equation), 'ctx': self.ctx}
 
         self.points = []
-
-        Clock.schedule_interval(self.update, .01)
-
-    def update(self,dt):
-        if self.ctx.parent.graph.is_resizing:
-            self.equation_update(self.equation)
-
 
     def equation_update(self, equation_text):
         """
@@ -122,10 +117,8 @@ class Equation(FloatLayout):
                 for y_value in axis_y.children:
                     if y_value.key == y_key:
                         cord_points.append(tuple([int(x_value.marker_pos), int(y_value.marker_pos)]))
-        except (SyntaxError,TypeError):
+        except (SyntaxError, TypeError):
             pass
-
-        print(cord_points)
 
         with self.ctx.parent.graph.canvas:
             self.line = Line(points=cord_points, width=1.5, color=Color(self.r, self.g, self.b, 1), dash=False)

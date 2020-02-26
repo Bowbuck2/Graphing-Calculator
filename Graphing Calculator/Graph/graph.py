@@ -22,7 +22,9 @@ class Graph(FloatLayout):
         self.prev_width = 640
 
         self.resize_height_up, self.resize_height_down = False, False
-        self.prev_height = 600
+        self.prev_height = 640
+
+        self.graph_moving = False
 
     def home(self):
         """
@@ -31,6 +33,7 @@ class Graph(FloatLayout):
 
         self.axis_x.pos = self.parent.children[0].width, 0
         self.axis_y.pos = self.parent.children[0].width, 0
+        Clock.schedule_once(self.equation_update, .1)
 
     def on_touch_move(self, touch):
         """
@@ -46,6 +49,14 @@ class Graph(FloatLayout):
                 self.axis_y.x += abs(speed * touch.dx)
             elif touch.dx < 0:
                 self.axis_y.x -= abs(speed * touch.dx)
+        Clock.schedule_once(self.equation_update, .1)
+
+    def equation_update(self, dt):
+        """
+        Updates Position of Equations
+        """
+        for data in self.parent.children[0].ids.InputField.ids.layout.children:
+            data.equation_update(data.equation)
 
     def window_marker_gen(self):
         """
@@ -86,6 +97,8 @@ class Graph(FloatLayout):
         #        marker.remove_marker()
 
     def on_maximize(self, *args):
+        Clock.schedule_once(self.equation_update, .1)
+
         while len(self.axis_x.children) != 0:
             self.axis_x.reset(), self.axis_y.reset()
         self.axis_x.init_children(.1), self.axis_y.init_children(.1)
@@ -93,13 +106,15 @@ class Graph(FloatLayout):
         while (len(self.axis_x.children) * 64) < self.width:
             self.axis_x.generate('l-r')
 
-        while (len(self.axis_y.children) * 60) < self.height:
+        while (len(self.axis_y.children) * 64) < self.height:
             self.axis_y.generate('l-r')
 
         self.home()
 
     def on_window_resize(self, window, width, height):
         self.window_marker_gen()
+        Clock.schedule_once(self.equation_update, .1)
+
 
     def check_graph_size(self, width, height, dt):
         """
@@ -203,7 +218,7 @@ class Axis(Widget):
             else:
                 if self.parent.resize_height_up:
                     marker_diff = self.height - self.children[-1].y
-                    if marker_diff >= 60:
+                    if marker_diff >= 64:
                         self.generate('l-r')
                 if self.parent.resize_height_down:
                     if self.children[-1].y > self.height:
@@ -224,7 +239,7 @@ class AxisX(Axis):
 
 
 class AxisY(Axis):
-    def __init__(self, marker_type="MarkerY", marker_diff=60, **kwargs):
+    def __init__(self, marker_type="MarkerY", marker_diff=64, **kwargs):
         super().__init__(marker_type, marker_diff, **kwargs)
 
 
@@ -298,7 +313,7 @@ class MarkerY(Marker):
 
     def add_marker(self, marker_pos):
         if not self.parent.parent.is_resizing:
-            if marker_pos < self.ctx.y - 60:
+            if marker_pos < self.ctx.y - 64:
                 self.parent.generate('l-r')
                 self.parent.remove_widget(self)
                 Clock.unschedule(self.update)
