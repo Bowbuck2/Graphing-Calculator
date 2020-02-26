@@ -6,6 +6,7 @@ from kivy.properties import ObjectProperty, NumericProperty
 from kivy.uix.widget import Widget
 
 from kivy.lang import Builder
+
 Builder.load_file('Graph/graph.kv')
 
 
@@ -138,6 +139,7 @@ class Axis(Widget):
             self.marker = MarkerY
 
     def update(self, dt):
+        self.children = sorted(self.children, key=int)
         self.resize_window_marker()
 
     def init_children(self, dt):

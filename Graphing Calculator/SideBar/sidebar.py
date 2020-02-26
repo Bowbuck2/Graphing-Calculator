@@ -1,6 +1,10 @@
 from random import randrange
 
+import re
+
 from kivy.clock import Clock
+from kivy.graphics.context_instructions import Color
+from kivy.graphics.vertex_instructions import Line
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
@@ -35,13 +39,13 @@ class InputField(RecycleView):
         Generates another Equation if All are filled
         """
         if not any(data.get('equation', None) == '' for data in self.data):
-            self.data.append(EquationInput(position=self.data[-1].get('position') + 1, ctx=self).__dict__())
+            self.data.append(Equation(position=self.data[-1].get('position') + 1, ctx=self).__dict__())
 
     def update_position(self):
         """
         Updates Positions after Labels are Removed
         """
-        for count,data in enumerate(self.data):
+        for count, data in enumerate(self.data):
             data['position'] = count
 
     def init_gen(self, dt):
@@ -49,11 +53,11 @@ class InputField(RecycleView):
         on app start, will generate EquationInput
         """
         for amount in range(0, 1):
-            equation_input = EquationInput(position=amount, ctx=self)
+            equation_input = Equation(position=amount, ctx=self)
             self.data.append(equation_input.__dict__())
 
 
-class EquationInput(FloatLayout):
+class Equation(FloatLayout):
     r, g, b = NumericProperty(), NumericProperty(), NumericProperty()
     equation = StringProperty()
     position = NumericProperty(0)
@@ -61,7 +65,6 @@ class EquationInput(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
         self.ctx, self.position = kwargs.get('ctx'), kwargs.get('position') or 0
         self.equation = ''
 
@@ -71,7 +74,16 @@ class EquationInput(FloatLayout):
         self.dat = {'position': int(self.position), 'r': float(self.r), 'g': float(self.g), 'b': float(self.b),
                     'equation': str(self.equation), 'ctx': self.ctx}
 
-    def update_equation(self, equation_text):
+        self.points = []
+
+        Clock.schedule_interval(self.update, .01)
+
+    def update(self,dt):
+        if self.ctx.parent.graph.is_resizing:
+            self.equation_update(self.equation)
+
+
+    def equation_update(self, equation_text):
         """
         updates RV data of equation input
         checks if equation is a function
@@ -79,9 +91,44 @@ class EquationInput(FloatLayout):
         for data in self.ctx.data:
             if data['position'] == self.position:
                 data['equation'] = equation_text
+                self.equation = equation_text
 
+        if re.match(r'.?=.+', equation_text):
+            self.clear_canvas()
+            self.function_create()
 
+    def function_create(self):
+        """
+        Creates the function on the graph
+        """
+        axis_x = self.ctx.parent.graph.axis_x
+        axis_y = self.ctx.parent.graph.axis_y
 
+        equation_right = self.equation.split('=')[1].lower()
+        variables = []
+
+        for count, char in enumerate(equation_right):
+            if char.isalpha():
+                variables.append(tuple([char, count]))
+
+        symbol = variables[0]
+        cord_points = []
+
+        try:
+            for x_value in axis_x.children:
+                equation = list(equation_right)
+                equation[symbol[1]] = str(x_value.key)
+                y_key = eval(''.join(char for char in equation))
+                for y_value in axis_y.children:
+                    if y_value.key == y_key:
+                        cord_points.append(tuple([int(x_value.marker_pos), int(y_value.marker_pos)]))
+        except (SyntaxError,TypeError):
+            pass
+
+        print(cord_points)
+
+        with self.ctx.parent.graph.canvas:
+            self.line = Line(points=cord_points, width=1.5, color=Color(self.r, self.g, self.b, 1), dash=False)
 
     def remove_equation(self):
         """
@@ -89,13 +136,22 @@ class EquationInput(FloatLayout):
         """
         self.ctx.data.pop(self.position)
         self.ctx.update_position()
+        self.clear_canvas()
+
+    def clear_canvas(self):
+        """
+        Checks if canvas line exists, then deletes
+        """
+        try:
+            self.ctx.parent.graph.canvas.remove(self.line)
+        except AttributeError:
+            pass
 
     def __dict__(self):
         return self.dat
 
 
-class TI(TextInput):
-
+class EquationInput(TextInput):
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
         """
         Removes if Equation is empty and keycode is fired
@@ -106,8 +162,7 @@ class TI(TextInput):
                 print(self.parent.remove_equation())
         return True
 
-
     def insert_text(self, substring, from_undo=False):
         s = substring.lower()
         if not s.isspace():
-            return super(TI, self).insert_text(s, from_undo=from_undo)
+            return super(EquationInput, self).insert_text(s, from_undo=from_undo)

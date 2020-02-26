@@ -30,7 +30,7 @@
 
 
 <InputField>:
-    viewclass: 'EquationInput'
+    viewclass: 'Equation'
 
     RecycleGridLayout:
         default_size: None, dp(50)
@@ -40,18 +40,18 @@
         cols: 1
 
 
-<EquationInput>
+<Equation>
     canvas.before:
         Color:
             rgba: 1,1,1,.4
         Rectangle:
             pos: self.pos[0], self.pos[1] + 2.5
             size: self.size[0], self.size[1] - 5
-    TI:
+    EquationInput:
         size_hint: .8,.75
         pos_hint: {'right': .95, 'top': .85}
+        on_text: root.equation_update(self.text)
         italic: True
-        on_text: root.update_equation(self.text) if self.text is not '' else None
         font_size: 20
         halign: 'left'
         multiline: False
