@@ -24,8 +24,6 @@ class Graph(FloatLayout):
         self.resize_height_up, self.resize_height_down = False, False
         self.prev_height = 640
 
-        self.graph_moving = False
-
     def home(self):
         """
         Returns User to 0,0
@@ -33,7 +31,6 @@ class Graph(FloatLayout):
 
         self.axis_x.pos = self.parent.children[0].width, 0
         self.axis_y.pos = self.parent.children[0].width, 0
-        Clock.schedule_once(self.equation_update, .1)
 
     def on_touch_move(self, touch):
         """
@@ -49,14 +46,8 @@ class Graph(FloatLayout):
                 self.axis_y.x += abs(speed * touch.dx)
             elif touch.dx < 0:
                 self.axis_y.x -= abs(speed * touch.dx)
-        Clock.schedule_once(self.equation_update, .1)
 
-    def equation_update(self, dt):
-        """
-        Updates Position of Equations
-        """
-        for data in self.parent.children[0].ids.InputField.ids.layout.children:
-            data.equation_update(data.equation)
+
 
     def window_marker_gen(self):
         """
@@ -97,7 +88,6 @@ class Graph(FloatLayout):
         #        marker.remove_marker()
 
     def on_maximize(self, *args):
-        Clock.schedule_once(self.equation_update, .1)
 
         while len(self.axis_x.children) != 0:
             self.axis_x.reset(), self.axis_y.reset()
@@ -113,8 +103,6 @@ class Graph(FloatLayout):
 
     def on_window_resize(self, window, width, height):
         self.window_marker_gen()
-        Clock.schedule_once(self.equation_update, .1)
-
 
     def check_graph_size(self, width, height, dt):
         """

@@ -1,16 +1,16 @@
+import math
 from random import randrange
-
 import re
 
 from kivy.clock import Clock
-from kivy.core.window import Window
-from kivy.graphics.context_instructions import Color
+from kivy.graphics.context_instructions import Color, Translate, PushMatrix, PopMatrix
 from kivy.graphics.vertex_instructions import Line
-from kivy.properties import NumericProperty, StringProperty, ObjectProperty
+from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.lang import Builder
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
 
 Builder.load_file('Sidebar/sidebar.kv')
 
@@ -24,7 +24,7 @@ class SideBar(FloatLayout):
         self.graph = self.parent.children[1]
 
 
-class InputField(RecycleView):
+class RV(RecycleView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.data = []
@@ -76,7 +76,19 @@ class Equation(FloatLayout):
         self.dat = {'position': int(self.position), 'r': float(self.r), 'g': float(self.g), 'b': float(self.b),
                     'equation': str(self.equation), 'ctx': self.ctx}
 
-        self.points = []
+        self.variables = []
+        self.equation_right = ''
+        self.symbol = 0
+
+        self.x_values, self.y_values = [], []
+        self.x_cord, self.y_cord = [], []
+        self.cord_points = []
+
+        Clock.schedule_once(self.grab_parents, .1)
+
+    def grab_parents(self, dt):
+        self.axis_x = self.ctx.parent.graph.axis_x
+        self.axis_y = self.ctx.parent.graph.axis_y
 
     def equation_update(self, equation_text):
         """
@@ -89,59 +101,97 @@ class Equation(FloatLayout):
                 self.equation = equation_text
 
         if re.match(r'.?=.+', equation_text):
-            self.clear_canvas()
             self.function_create()
 
     def function_create(self):
         """
-        Creates the function on the graph
+        Creates Key Values
         """
-        axis_x = self.ctx.parent.graph.axis_x
-        axis_y = self.ctx.parent.graph.axis_y
+        self.cord_points = []
+        self.x_cord, self.y_cord = [], []
+        self.x_values, self.y_values = [], []
 
-        equation_right = self.equation.split('=')[1].lower()
-        variables = []
+        self.equation_right = self.equation.split('=')[1].lower()
 
-        for count, char in enumerate(equation_right):
+        for count, char in enumerate(self.equation_right):
             if char.isalpha():
-                variables.append(tuple([char, count]))
+                self.variables.append(tuple([char, count]))
 
-        symbol = variables[0]
-        cord_points = []
+        self.symbol = self.variables[0]
 
-        try:
-            for x_value in axis_x.children:
-                equation = list(equation_right)
-                equation[symbol[1]] = str(x_value.key)
-                y_key = eval(''.join(char for char in equation))
-                for y_value in axis_y.children:
-                    if y_value.key == y_key:
-                        cord_points.append(tuple([int(x_value.marker_pos), int(y_value.marker_pos)]))
-        except (SyntaxError, TypeError):
-            pass
+        x_child = self.axis_x.children
+        x_key = x_child[0].key - .125
 
-        with self.ctx.parent.graph.canvas:
-            self.line = Line(points=cord_points, width=1.5, color=Color(self.r, self.g, self.b, 1), dash=False)
+        # PARENT KEY DOES NOT EXIST
+        for pixel in range(int(x_child[0].marker_pos), int(x_child[-1].marker_pos), 8):
+            # Sets X Value
+            x_key += .125
+            self.x_cord.append(pixel)
+            self.x_values.append(round(x_key, 2))
 
-    def remove_equation(self):
-        """
-        Removes Self
-        """
-        self.ctx.data.pop(self.position)
-        self.ctx.update_position()
-        self.clear_canvas()
+            # Sets Y Values (Plug X into Y)
+            equation = list(self.equation_right)
+            equation[self.symbol[1]] = str(round(x_key, 2))
+            y_key = eval(''.join(char for char in equation))
+            self.y_values.append(y_key)
 
-    def clear_canvas(self):
-        """
-        Checks if canvas line exists, then deletes
-        """
-        try:
-            self.ctx.parent.graph.canvas.remove(self.line)
-        except AttributeError:
-            pass
+        for y_value in self.y_values:
+            parent_key = math.ceil(y_value)
+
+            if parent_key != y_value:
+                key_diff = abs(round(abs(parent_key) - abs(y_value), 2))
+
+                offset = {
+                    .12: 8,
+                    .25: 16,
+                    .38: 24,
+                    .5: 32,
+                    .62: 40,
+                    .75: 48,
+                    .88: 56
+                }.get(key_diff)
+
+                if parent_key in [marker.key for marker in self.axis_y.children]:
+                    for marker in self.axis_y.children:
+                        if marker.key == parent_key:
+                            self.y_cord.append(marker.marker_pos - offset)
+                else:
+                    self.y_cord.append((self.axis_y.children[-1].marker_pos + 64) - offset)
+            else:
+                for marker in self.axis_y.children:
+                    if marker.key == int(parent_key):
+                        self.y_cord.append(marker.marker_pos)
+
+        self.cord_points = [tuple([x_cord, y_cord]) for x_cord, y_cord in zip(self.x_cord, self.y_cord)]
+
+        self.add_widget(LineDraw(ctx=self))
 
     def __dict__(self):
         return self.dat
+
+
+class LineDraw(Widget):
+    ctx = ObjectProperty(None)
+    translate_pos = ListProperty([0, 0])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.ctx = kwargs.get('ctx')
+        self.graph = self.ctx.parent.parent.parent.graph
+
+        with self.graph.canvas:
+            PushMatrix()
+            x, y = self.translate_pos
+            self.translate = Translate(x=x, y=y)
+            Line(points=self.ctx.cord_points, width=1.5, color=Color(self.ctx.r, self.ctx.g, self.ctx.b, 1),
+                 dash=False)
+        with self.graph.canvas.after:
+            PopMatrix()
+
+        Clock.schedule_interval(self.update, .1)
+
+    def update(self, dt):
+        self.graph.axis_x.children[5].marker_pos, self.graph.axis_y.children[5].marker_pos = self.translate_pos
 
 
 class EquationInput(TextInput):
