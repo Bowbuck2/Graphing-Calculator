@@ -41,7 +41,7 @@
         cols: 1
 
 
-<Equation>
+<Equation>:
     canvas.before:
         Color:
             rgba: 1,1,1,.4
@@ -67,3 +67,16 @@
                 pos: self.pos
                 size: self.size
 
+<EquationLine>:
+    canvas.before:
+        PushMatrix:
+        Translate:
+            x: self.line_anchor_x
+            y: self.line_anchor_y
+        Color:
+            rgba: self.line_color
+        Line:
+            width: 1.5
+            points: self.cord_points
+    canvas.after:
+        PopMatrix:

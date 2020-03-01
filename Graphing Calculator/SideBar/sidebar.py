@@ -5,7 +5,7 @@ import re
 from kivy.clock import Clock
 from kivy.graphics.context_instructions import Color, Translate, PushMatrix, PopMatrix
 from kivy.graphics.vertex_instructions import Line
-from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
+from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty, ColorProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.lang import Builder
@@ -172,26 +172,23 @@ class Equation(FloatLayout):
 
 class LineDraw(Widget):
     ctx = ObjectProperty(None)
-    translate_pos = ListProperty([0, 0])
+
+    cord_points = ListProperty()
+    line_color = ColorProperty()
+
+    line_anchor_x = NumericProperty()
+    line_anchor_y = NumericProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ctx = kwargs.get('ctx')
         self.graph = self.ctx.parent.parent.parent.graph
 
-        with self.graph.canvas:
-            PushMatrix()
-            x, y = self.translate_pos
-            self.translate = Translate(x=x, y=y)
-            Line(points=self.ctx.cord_points, width=1.5, color=Color(self.ctx.r, self.ctx.g, self.ctx.b, 1),
-                 dash=False)
-        with self.graph.canvas.after:
-            PopMatrix()
+        self.cord_points = self.ctx.cord_points
+        self.line_color = self.ctx.r, self.ctx.g, self.ctx.b, 1
 
-        Clock.schedule_interval(self.update, .1)
-
-    def update(self, dt):
-        self.graph.axis_x.children[5].marker_pos, self.graph.axis_y.children[5].marker_pos = self.translate_pos
+        self.line_anchor_x = self.graph.axis_x.children[5].marker_pos
+        self.line_anchor_y = self.graph.axis_y.children[5].marker_pos
 
 
 class EquationInput(TextInput):
