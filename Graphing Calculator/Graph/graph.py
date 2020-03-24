@@ -24,11 +24,12 @@ class Graph(FloatLayout):
         self.resize_height_up, self.resize_height_down = False, False
         self.prev_height = 640
 
+        self.dy, self.dx = 0, 0
+
     def home(self):
         """
         Returns User to 0,0
         """
-
         self.axis_x.pos = self.parent.children[0].width, 0
         self.axis_y.pos = self.parent.children[0].width, 0
 
@@ -36,8 +37,11 @@ class Graph(FloatLayout):
         """
         Updates Position of AxisX/AxisY
         """
+        # Function Call to Say when Moving
         speed = 1
         if self.collide_point(*touch.pos):
+            self.update_equations()
+
             if touch.dy > 0:
                 self.axis_x.y += abs(speed * touch.dy)
             elif touch.dy < 0:
@@ -47,7 +51,35 @@ class Graph(FloatLayout):
             elif touch.dx < 0:
                 self.axis_y.x -= abs(speed * touch.dx)
 
+            self.dx, self.dy = touch.dx, touch.dy
+            Clock.schedule_once(self.touch_reset, .1)
 
+    def update_equations(self):
+        sidebar = self.parent.children[0]
+        for equation in sidebar.children[0].children[0].children:
+            if len(equation.line) > 0:
+                # Updates Position of Line
+                equation.anchor_x += self.dx
+                equation.anchor_y += self.dy
+
+                equation.translate.x = equation.anchor_x
+                equation.translate.y = equation.anchor_y
+
+                for count, data in enumerate(equation.data):
+                    data['x_pos'] += self.dx
+                    data['parent_pos_x'] += self.dx
+
+                    data['y_pos'] += self.dy
+                    data['parent_pos_y'] += self.dy
+
+                equation.translate.x = 0
+                equation.translate.y = 0
+
+                equation.remove_equation()
+                equation.create_equation()
+
+    def touch_reset(self, dt):
+        self.dx, self.dy = 0, 0
 
     def window_marker_gen(self):
         """
@@ -93,10 +125,10 @@ class Graph(FloatLayout):
             self.axis_x.reset(), self.axis_y.reset()
         self.axis_x.init_children(.1), self.axis_y.init_children(.1)
 
-        while (len(self.axis_x.children) * 64) < self.width:
+        while (len(self.axis_x.children) * 60) < self.width:
             self.axis_x.generate('l-r')
 
-        while (len(self.axis_y.children) * 64) < self.height:
+        while (len(self.axis_y.children) * 60) < self.height:
             self.axis_y.generate('l-r')
 
         self.home()
@@ -147,15 +179,16 @@ class Axis(Widget):
 
     def init_children(self, dt):
         """Creating Basic Instance of Children X-Markers"""
-        for key in range(-5, 6, 1):
-            marker = self.marker(self.parent, key)
-
-            if self.marker_type == 'MarkerX':
+        if self.marker_type == 'MarkerX':
+            for key in range(-5, 6, 1):
+                marker = self.marker(self.parent, key)
                 marker.x = len(self.children) * self.marker_diff
-            else:
-                marker.y = len(self.children) * self.marker_diff
-
-            self.add_widget(marker)
+                self.add_widget(marker)
+        else:
+            for key in range(-4, 6, 1):
+                marker = self.marker(self.parent, key)
+                marker.y = len(self.children) * self.marker_diff + 1
+                self.add_widget(marker)
 
     def generate(self, type_change: str):
         """
@@ -222,12 +255,12 @@ class Axis(Widget):
 
 
 class AxisX(Axis):
-    def __init__(self, marker_type="MarkerX", marker_diff=64, **kwargs):
+    def __init__(self, marker_type="MarkerX", marker_diff=60, **kwargs):
         super().__init__(marker_type, marker_diff, **kwargs)
 
 
 class AxisY(Axis):
-    def __init__(self, marker_type="MarkerY", marker_diff=64, **kwargs):
+    def __init__(self, marker_type="MarkerY", marker_diff=60, **kwargs):
         super().__init__(marker_type, marker_diff, **kwargs)
 
 
@@ -301,7 +334,7 @@ class MarkerY(Marker):
 
     def add_marker(self, marker_pos):
         if not self.parent.parent.is_resizing:
-            if marker_pos < self.ctx.y - 64:
+            if marker_pos < self.ctx.y:
                 self.parent.generate('l-r')
                 self.parent.remove_widget(self)
                 Clock.unschedule(self.update)

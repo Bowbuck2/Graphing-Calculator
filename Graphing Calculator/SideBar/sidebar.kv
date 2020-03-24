@@ -51,7 +51,7 @@
     EquationInput:
         size_hint: .8,.75
         pos_hint: {'right': .95, 'top': .85}
-        on_text: root.equation_update(self.text)
+        on_text: root.equation_check(self.text)
         italic: True
         font_size: 20
         halign: 'left'
@@ -66,17 +66,3 @@
             Rectangle:
                 pos: self.pos
                 size: self.size
-
-<EquationLine>:
-    canvas.before:
-        PushMatrix:
-        Translate:
-            x: self.line_anchor_x
-            y: self.line_anchor_y
-        Color:
-            rgba: self.line_color
-        Line:
-            width: 1.5
-            points: self.cord_points
-    canvas.after:
-        PopMatrix:

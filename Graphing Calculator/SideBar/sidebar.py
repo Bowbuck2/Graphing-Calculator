@@ -1,16 +1,18 @@
 import math
+from functools import partial
+from pprint import pprint
 from random import randrange
 import re
 
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.graphics.context_instructions import Color, Translate, PushMatrix, PopMatrix
 from kivy.graphics.vertex_instructions import Line
-from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty, ColorProperty
+from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.lang import Builder
 from kivy.uix.textinput import TextInput
-from kivy.uix.widget import Widget
 
 Builder.load_file('Sidebar/sidebar.kv')
 
@@ -64,11 +66,19 @@ class Equation(FloatLayout):
     position = NumericProperty(0)
     ctx = ObjectProperty(None)
 
+    translate_pos = ListProperty([0, 0])
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
         self.ctx, self.position = kwargs.get('ctx'), kwargs.get('position') or 0
         self.equation = ''
+
+        self.line = []
+        self.data = ListProperty(None)
+        self.points = []
+        self.latest_y_parent = None
+
+        self.anchor_x, self.anchor_y = 0, 0
 
         self.r, self.g, self.b = round(randrange(1, 255) / 255, 2), round(randrange(1, 255) / 255, 2), round(
             randrange(1, 255) / 255, 2)
@@ -76,21 +86,14 @@ class Equation(FloatLayout):
         self.dat = {'position': int(self.position), 'r': float(self.r), 'g': float(self.g), 'b': float(self.b),
                     'equation': str(self.equation), 'ctx': self.ctx}
 
-        self.variables = []
-        self.equation_right = ''
-        self.symbol = 0
-
-        self.x_values, self.y_values = [], []
-        self.x_cord, self.y_cord = [], []
-        self.cord_points = []
-
         Clock.schedule_once(self.grab_parents, .1)
 
     def grab_parents(self, dt):
-        self.axis_x = self.ctx.parent.graph.axis_x
-        self.axis_y = self.ctx.parent.graph.axis_y
+        self.graph = self.ctx.parent.graph
+        self.axis_x = self.graph.axis_x
+        self.axis_y = self.graph.axis_y
 
-    def equation_update(self, equation_text):
+    def equation_check(self, equation_text: str):
         """
         updates RV data of equation input
         checks if equation is a function
@@ -99,96 +102,128 @@ class Equation(FloatLayout):
             if data['position'] == self.position:
                 data['equation'] = equation_text
                 self.equation = equation_text
+        if re.match(r'y=x', self.equation.lower()):
+            # Grabs variable in equation
+            variables = []
+            equation = self.equation.split('=')
 
-        if re.match(r'.?=.+', equation_text):
-            self.function_create()
+            for count, char in enumerate(equation):
+                if char.isalpha():
+                    variables.append(tuple([char, count]))
+            self.symbol = variables[0]
 
-    def function_create(self):
+            self.create_equation()
+        else:
+            self.remove_equation()
+
+    def create_equation(self):
         """
-        Creates Key Values
+        Creates X/Y Values
         """
-        self.cord_points = []
-        self.x_cord, self.y_cord = [], []
-        self.x_values, self.y_values = [], []
+        # Creates X/Y Data
+        parent_data_x = []
 
-        self.equation_right = self.equation.split('=')[1].lower()
+        for marker in self.graph.axis_x.children:
+            try:
+                parent_data_x.append({'parent_pos': round(marker.marker_pos, 2), 'key_value': marker.key})
+            except TypeError:
+                pass
 
-        for count, char in enumerate(self.equation_right):
-            if char.isalpha():
-                self.variables.append(tuple([char, count]))
+        parent_data_x.append(
+            {'parent_pos': parent_data_x[-1]['parent_pos'] + 60, 'key_value': parent_data_x[-1]['key_value'] + 1})
 
-        self.symbol = self.variables[0]
+        count = 0
+        stop_gen = False
+        for x_pos in range(0, Window.width):
+            x_pos_updated = x_pos + self.graph.x
+            try:
+                if x_pos_updated <= parent_data_x[count].get('parent_pos'):
+                    parent_key_value_x = parent_data_x[count].get('key_value')
+                    x_value = round(
+                        parent_key_value_x - (
+                                ((parent_data_x[count].get('parent_pos')) - (x_pos + self.graph.x)) / 60),
+                        2)
+                    parent_pos_y, y_pos, y_value, parent_key_value_y = self.equate_y(x_value)
 
-        x_child = self.axis_x.children
-        x_key = x_child[0].key - .125
+                    if y_pos >= self.graph.height:
+                        stop_gen = True
+                        continue
 
-        # PARENT KEY DOES NOT EXIST
-        for pixel in range(int(x_child[0].marker_pos), int(x_child[-1].marker_pos), 8):
-            # Sets X Value
-            x_key += .125
-            self.x_cord.append(pixel)
-            self.x_values.append(round(x_key, 2))
+                    if x_pos > self.graph.width or y_pos <= 0:
+                        continue
 
-            # Sets Y Values (Plug X into Y)
-            equation = list(self.equation_right)
-            equation[self.symbol[1]] = str(round(x_key, 2))
-            y_key = eval(''.join(char for char in equation))
-            self.y_values.append(y_key)
-
-        for y_value in self.y_values:
-            parent_key = math.ceil(y_value)
-
-            if parent_key != y_value:
-                key_diff = abs(round(abs(parent_key) - abs(y_value), 2))
-
-                offset = {
-                    .12: 8,
-                    .25: 16,
-                    .38: 24,
-                    .5: 32,
-                    .62: 40,
-                    .75: 48,
-                    .88: 56
-                }.get(key_diff)
-
-                if parent_key in [marker.key for marker in self.axis_y.children]:
-                    for marker in self.axis_y.children:
-                        if marker.key == parent_key:
-                            self.y_cord.append(marker.marker_pos - offset)
+                    if not stop_gen:
+                        self.data.append({'x_value': x_value, 'x_pos': x_pos_updated,
+                                          'y_value': y_value, 'y_pos': y_pos,
+                                          'parent_pos_x': int(parent_data_x[count].get('parent_pos')),
+                                          'parent_key_value_x': parent_key_value_x,
+                                          'parent_pos_y': parent_pos_y, 'parent_key_value_y': parent_key_value_y})
                 else:
-                    self.y_cord.append((self.axis_y.children[-1].marker_pos + 64) - offset)
-            else:
-                for marker in self.axis_y.children:
-                    if marker.key == int(parent_key):
-                        self.y_cord.append(marker.marker_pos)
+                    count += 1
+            except (IndexError, TypeError):
+                pass
 
-        self.cord_points = [tuple([x_cord, y_cord]) for x_cord, y_cord in zip(self.x_cord, self.y_cord)]
+        self.gen_line()
 
-        self.add_widget(LineDraw(ctx=self))
+    def equate_y(self, x_value: float):
+        """
+        Solves for Y Value
+        """
+        equate = list(self.equation.split('=')[1])
+        equate[self.symbol[1]] = str(x_value)
+        y_value = eval(''.join(char for char in equate))
+        parent_key_value_y = math.ceil(y_value)
+
+        children = sorted(self.axis_y.children, key=int)
+        parent_pos_y = None
+
+        for marker in children:
+            if marker.key == parent_key_value_y:
+                parent_pos_y = marker.marker_pos
+                self.latest_y_parent = marker.marker_pos
+
+        if parent_pos_y is None:
+            parent_pos_y = self.latest_y_parent + 60
+
+        y_pos = parent_pos_y - (abs(parent_key_value_y - y_value) * 60)
+
+        return parent_pos_y, y_pos, y_value, parent_key_value_y
+
+    def gen_line(self):
+        """
+        Updates Current Lines or Generates new ones
+        """
+        self.points = [tuple([dat.get('x_pos'), dat.get('y_pos')]) for dat in self.data]
+
+        for l in self.line:
+            self.graph.canvas.remove(l)
+
+        self.line = []
+        self.anchor_x, self.anchor_y = 0, 0
+
+        with self.graph.canvas:
+            PushMatrix()
+            x, y = self.translate_pos
+            self.translate = Translate(x=x, y=y)
+            line = Line(points=self.points, width=1.5, color=Color(self.r, self.g, self.b, 1))
+            self.line.append(line)
+        with self.graph.canvas.after:
+            PopMatrix()
+
+        self.line.append(line)
+
+    def remove_equation(self):
+        for l in self.line:
+            self.graph.canvas.remove(l)
+
+        self.line = []
+        self.data = []
+        self.points = []
+        self.anchor_x, self.anchor_y = 0, 0
+        self.latest_y_parent = None
 
     def __dict__(self):
         return self.dat
-
-
-class LineDraw(Widget):
-    ctx = ObjectProperty(None)
-
-    cord_points = ListProperty()
-    line_color = ColorProperty()
-
-    line_anchor_x = NumericProperty()
-    line_anchor_y = NumericProperty()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.ctx = kwargs.get('ctx')
-        self.graph = self.ctx.parent.parent.parent.graph
-
-        self.cord_points = self.ctx.cord_points
-        self.line_color = self.ctx.r, self.ctx.g, self.ctx.b, 1
-
-        self.line_anchor_x = self.graph.axis_x.children[5].marker_pos
-        self.line_anchor_y = self.graph.axis_y.children[5].marker_pos
 
 
 class EquationInput(TextInput):
