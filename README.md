@@ -1,6 +1,6 @@
 # Graphing Calculator
 
-![Graph](Graphing Calculator/ReadMe.png)
+![Graph](ReadMe.png)
 
 
 ## About
