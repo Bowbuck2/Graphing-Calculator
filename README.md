@@ -24,6 +24,8 @@ Graphing Calculator using the Kivy Framework!
 
 - [ ] Implement inequalities
 
+- [ ] Add Graph Scaling
+
 ## Installation
 #### Users
 
