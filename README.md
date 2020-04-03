@@ -6,7 +6,7 @@
 ## About
 Graphing Calculator using the Kivy Framework! 
 
-##Features
+## Features
 
 - Create any equation using the sidebar
 
