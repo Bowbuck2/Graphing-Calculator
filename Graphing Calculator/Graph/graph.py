@@ -58,13 +58,6 @@ class Graph(FloatLayout):
         sidebar = self.parent.children[0]
         for equation in sidebar.children[0].children[0].children:
             if len(equation.line) > 0:
-                # Updates Position of Line
-                equation.anchor_x += self.dx
-                equation.anchor_y += self.dy
-
-                equation.translate.x = equation.anchor_x
-                equation.translate.y = equation.anchor_y
-
                 for count, data in enumerate(equation.data):
                     data['x_pos'] += self.dx
                     data['parent_pos_x'] += self.dx
@@ -72,11 +65,7 @@ class Graph(FloatLayout):
                     data['y_pos'] += self.dy
                     data['parent_pos_y'] += self.dy
 
-                equation.translate.x = 0
-                equation.translate.y = 0
-
-                equation.remove_equation()
-                equation.create_equation()
+                equation.equation_check(equation.equation)
 
     def touch_reset(self, dt):
         self.dx, self.dy = 0, 0
@@ -107,17 +96,9 @@ class Graph(FloatLayout):
         print('Fired')
         self.home()
 
-        # for marker in self.axis_x.children:
-        #    if marker.x > self.width or marker < 0:
-        #        print(f'Remove Marker {int(marker)}')
-        #        marker.is_deleted = True
-        #        marker.remove_marker()
+        # for marker in self.axis_x.children:  #    if marker.x > self.width or marker < 0:  #        print(f'Remove Marker {int(marker)}')  #        marker.is_deleted = True  #        marker.remove_marker()
 
-        # for marker in self.axis_y.children:
-        #    if marker.y > self.height or marker < 0:
-        #        print(f'Remove Marker {int(marker)}')
-        #        marker.is_deleted = True
-        #        marker.remove_marker()
+        # for marker in self.axis_y.children:  #    if marker.y > self.height or marker < 0:  #        print(f'Remove Marker {int(marker)}')  #        marker.is_deleted = True  #        marker.remove_marker()
 
     def on_maximize(self, *args):
 

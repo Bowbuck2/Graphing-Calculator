@@ -1,8 +1,7 @@
-import math
-from functools import partial
-from pprint import pprint
 from random import randrange
+from typing import Dict, List, Union
 import re
+import math
 
 from kivy.clock import Clock
 from kivy.core.window import Window
@@ -60,12 +59,88 @@ class RV(RecycleView):
             self.data.append(equation_input.__dict__())
 
 
+class Solver:
+    def __init__(self, equation: str) -> None:
+        self.operations = {'^': float.__pow__, '*': float.__mul__, '/': float.__truediv__, '+': float.__add__,
+                           '-': float.__sub__, }
+        self.equation = equation.split('=')[1]
+
+    def start(self, **kwargs):
+        eq = list(''.join(self.equation))
+
+        for count, char in enumerate(eq):
+            if char in kwargs.keys():
+                value = kwargs[char]
+                eq[count] = str(value)
+
+        if '(' in eq:
+            right_p, left_p = None, None
+
+            for count, char in enumerate(eq):
+                if char == '(':
+                    left_p = count
+                elif char == ')':
+                    right_p = count + 1
+
+                if right_p and left_p is not None and len(self.equation) != 1:
+                    ans = str(self.solve(eq[left_p:right_p]))
+
+                    eq = eq[:left_p] + eq[right_p:]
+                    eq.insert(left_p, ans)
+
+                    self.equation = eq
+                    self.start(**kwargs)
+                elif len(self.equation) == 1:
+                    return float(self.equation[0])
+        else:
+            return self.solve(eq)
+
+    def solve(self, equation: list):
+        ans = None
+        values = []
+        temp = ''
+        for count, char in enumerate(equation):
+            if char == '-':
+                values.append('-1.0')
+                values.append('*')
+                continue
+
+            if char not in self.operations.keys() and char not in ['(', ')']:
+                temp += char
+            else:
+                values.append(temp)
+                values.append(char)
+                temp = ''
+        if len(temp) != 0:
+            values.append(temp)
+
+        if len(values) == 1:
+            return float(values[0])
+
+        for key, value in self.operations.items():
+            if key in values:
+                index = values.index(key)
+
+                left_value = float(values[index - 1])
+                right_value = float(values[index + 1])
+
+                if right_value < 0.9 and '^' in values:
+                    left_value = abs(left_value)
+
+                ans = value(left_value, right_value)
+
+                values.pop(index + 1)
+                values[index - 1] = ans
+                values.pop(index)
+
+        return ans
+
+
 class Equation(FloatLayout):
     r, g, b = NumericProperty(), NumericProperty(), NumericProperty()
     equation = StringProperty()
     position = NumericProperty(0)
     ctx = ObjectProperty(None)
-
     translate_pos = ListProperty([0, 0])
 
     def __init__(self, **kwargs):
@@ -76,9 +151,6 @@ class Equation(FloatLayout):
         self.line = []
         self.data = ListProperty(None)
         self.points = []
-        self.latest_y_parent = None
-
-        self.anchor_x, self.anchor_y = 0, 0
 
         self.r, self.g, self.b = round(randrange(1, 255) / 255, 2), round(randrange(1, 255) / 255, 2), round(
             randrange(1, 255) / 255, 2)
@@ -101,26 +173,23 @@ class Equation(FloatLayout):
         for data in self.ctx.data:
             if data['position'] == self.position:
                 data['equation'] = equation_text
-                self.equation = equation_text
-        if re.match(r'y=x', self.equation.lower()):
-            # Grabs variable in equation
-            variables = []
-            equation = self.equation.split('=')
+                self.equation = equation_text  # [-]?(\d | \w)
+        if re.match(r'(y|x|(f\(x\)))=.+', self.equation.lower()):
+            self.remove_line()
 
-            for count, char in enumerate(equation):
-                if char.isalpha():
-                    variables.append(tuple([char, count]))
-            self.symbol = variables[0]
+            if self.equation[0] is not 'x':
+                self.create_equation()
+            else:
+                self.vert_equation()
 
-            self.create_equation()
+            self.gen_line()
         else:
-            self.remove_equation()
+            self.remove_line()
 
     def create_equation(self):
         """
         Creates X/Y Values
         """
-        # Creates X/Y Data
         parent_data_x = []
 
         for marker in self.graph.axis_x.children:
@@ -133,61 +202,72 @@ class Equation(FloatLayout):
             {'parent_pos': parent_data_x[-1]['parent_pos'] + 60, 'key_value': parent_data_x[-1]['key_value'] + 1})
 
         count = 0
-        stop_gen = False
-        for x_pos in range(0, Window.width):
+        for x_pos in range(0, Window.width, 5):
             x_pos_updated = x_pos + self.graph.x
             try:
                 if x_pos_updated <= parent_data_x[count].get('parent_pos'):
                     parent_key_value_x = parent_data_x[count].get('key_value')
                     x_value = round(
-                        parent_key_value_x - (
-                                ((parent_data_x[count].get('parent_pos')) - (x_pos + self.graph.x)) / 60),
+                        parent_key_value_x - (((parent_data_x[count].get('parent_pos')) - (x_pos + self.graph.x)) / 60),
                         2)
+
                     parent_pos_y, y_pos, y_value, parent_key_value_y = self.equate_y(x_value)
 
-                    if y_pos >= self.graph.height:
-                        stop_gen = True
-                        continue
-
-                    if x_pos > self.graph.width or y_pos <= 0:
-                        continue
-
-                    if not stop_gen:
-                        self.data.append({'x_value': x_value, 'x_pos': x_pos_updated,
-                                          'y_value': y_value, 'y_pos': y_pos,
-                                          'parent_pos_x': int(parent_data_x[count].get('parent_pos')),
-                                          'parent_key_value_x': parent_key_value_x,
-                                          'parent_pos_y': parent_pos_y, 'parent_key_value_y': parent_key_value_y})
+                    self.data.append({'x_value': x_value, 'x_pos': x_pos_updated, 'y_value': y_value, 'y_pos': y_pos,
+                                      'parent_pos_x': int(parent_data_x[count].get('parent_pos')),
+                                      'parent_key_value_x': parent_key_value_x, 'parent_pos_y': parent_pos_y,
+                                      'parent_key_value_y': parent_key_value_y})
                 else:
                     count += 1
             except (IndexError, TypeError):
                 pass
 
-        self.gen_line()
-
     def equate_y(self, x_value: float):
         """
         Solves for Y Value
         """
-        equate = list(self.equation.split('=')[1])
-        equate[self.symbol[1]] = str(x_value)
-        y_value = eval(''.join(char for char in equate))
-        parent_key_value_y = math.ceil(y_value)
-
-        children = sorted(self.axis_y.children, key=int)
         parent_pos_y = None
 
-        for marker in children:
+        solver = Solver(self.equation)
+        y_value = solver.start(x=x_value)
+        parent_key_value_y = math.ceil(y_value)
+
+        for marker in self.axis_y.children:
             if marker.key == parent_key_value_y:
                 parent_pos_y = marker.marker_pos
-                self.latest_y_parent = marker.marker_pos
 
         if parent_pos_y is None:
-            parent_pos_y = self.latest_y_parent + 60
+            key = self.axis_y.children[-1].key
+            if y_value > key and parent_key_value_y <= key + 1:
+                parent_pos_y = self.axis_y.children[-1].marker_pos + 60
 
-        y_pos = parent_pos_y - (abs(parent_key_value_y - y_value) * 60)
+        y_pos = (parent_pos_y - (abs(parent_key_value_y - y_value) * 60))
 
         return parent_pos_y, y_pos, y_value, parent_key_value_y
+
+    def vert_equation(self):
+        try:
+            parent_pos = None
+
+            solver = Solver(self.equation)
+            x_value = solver.start()
+            parent_value = math.ceil(x_value)
+
+            for marker in self.axis_x.children:
+                if marker.key == parent_value:
+                    parent_pos = marker.marker_pos
+
+            dif = parent_value - x_value
+            value_pos = dif * 60
+            value = parent_pos - value_pos
+
+            self.data.append(
+                {'x_pos': value, 'y_pos': self.graph.y, 'parent_pos_x': parent_pos, 'parent_pos_y': parent_pos})
+            self.data.append(
+                {'x_pos': value, 'y_pos': self.graph.height, 'parent_pos_x': parent_pos, 'parent_pos_y': parent_pos})
+
+        except TypeError:
+            pass
 
     def gen_line(self):
         """
@@ -197,30 +277,18 @@ class Equation(FloatLayout):
 
         for l in self.line:
             self.graph.canvas.remove(l)
+        with self.graph.canvas:
+            line = Line(points=self.points, width=1.5, color=Color(self.r, self.g, self.b, 1))
 
         self.line = []
-        self.anchor_x, self.anchor_y = 0, 0
-
-        with self.graph.canvas:
-            PushMatrix()
-            x, y = self.translate_pos
-            self.translate = Translate(x=x, y=y)
-            line = Line(points=self.points, width=1.5, color=Color(self.r, self.g, self.b, 1))
-            self.line.append(line)
-        with self.graph.canvas.after:
-            PopMatrix()
-
         self.line.append(line)
 
-    def remove_equation(self):
+    def remove_line(self):
         for l in self.line:
             self.graph.canvas.remove(l)
 
         self.line = []
         self.data = []
-        self.points = []
-        self.anchor_x, self.anchor_y = 0, 0
-        self.latest_y_parent = None
 
     def __dict__(self):
         return self.dat
@@ -234,7 +302,7 @@ class EquationInput(TextInput):
         super().keyboard_on_key_down(window, keycode, text, modifiers)
         if self.text == "" and len(self.parent.ctx.data) > 2:
             if keycode[1] == "backspace":
-                print(self.parent.remove_equation())
+                self.parent.remove_line()
         return True
 
     def insert_text(self, substring, from_undo=False):
