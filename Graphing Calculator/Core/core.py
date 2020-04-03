@@ -1,3 +1,6 @@
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
@@ -14,4 +17,5 @@ class Main(FloatLayout):
 
 class CoreApp(App):
     def build(self):
+        self.title = 'Graphing Calculator'
         return Main()

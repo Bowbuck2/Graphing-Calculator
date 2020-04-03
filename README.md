@@ -18,8 +18,20 @@ Graphing Calculator using the Kivy Framework!
 
 ### Bugs/WIP
 
-- [] Fix minor sidebar bug with equation updating
+- [ ] Fix minor sidebar bug with equation updating
 
-- [] Minimizing window will cause program to crash
+- [ ] Minimizing window will cause program to crash
 
-- [] Implement inequalities
+- [ ] Implement inequalities
+
+## Installation
+#### Users
+
+- Install pipenv: `pip install pipenv`
+- Install dependencies: `pipenv sync`
+- Run the program: `python -m "Graphing Calculator"`
+
+#### Developers
+
+- Install pipenv: `pip install pipenv`
+- Install dependencies: `pipenv sync --dev`

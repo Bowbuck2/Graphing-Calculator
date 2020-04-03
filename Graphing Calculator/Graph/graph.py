@@ -90,9 +90,6 @@ class Graph(FloatLayout):
         Clock.schedule_once(self.resize_reset, .1)
 
     def on_minimize(self, *args):
-        """
-        Removes any Markers Not in the Current View
-        """
         print('Fired')
         self.home()
 
@@ -101,7 +98,6 @@ class Graph(FloatLayout):
         # for marker in self.axis_y.children:  #    if marker.y > self.height or marker < 0:  #        print(f'Remove Marker {int(marker)}')  #        marker.is_deleted = True  #        marker.remove_marker()
 
     def on_maximize(self, *args):
-
         while len(self.axis_x.children) != 0:
             self.axis_x.reset(), self.axis_y.reset()
         self.axis_x.init_children(.1), self.axis_y.init_children(.1)
