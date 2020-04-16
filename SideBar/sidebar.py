@@ -1,19 +1,18 @@
-from random import randrange
-from typing import Dict, List, Union
-import re
 import math
+import re
+from random import randrange
 
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.graphics.context_instructions import Color, Translate, PushMatrix, PopMatrix
+from kivy.graphics.context_instructions import Color
 from kivy.graphics.vertex_instructions import Line
+from kivy.lang import Builder
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
-from kivy.lang import Builder
 from kivy.uix.textinput import TextInput
 
-Builder.load_file('Sidebar/sidebar.kv')
+Builder.load_file('SideBar/sidebar.kv')
 
 
 class SideBar(FloatLayout):
@@ -243,6 +242,7 @@ class Equation(FloatLayout):
 
         y_pos = (parent_pos_y - (abs(parent_key_value_y - y_value) * 60))
 
+        print(f'At {x_value}, Our y-value is {y_value}')
         return parent_pos_y, y_pos, y_value, parent_key_value_y
 
     def vert_equation(self):

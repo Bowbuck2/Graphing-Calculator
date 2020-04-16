@@ -12,6 +12,7 @@ pypiwin32 = "*"
 kivy-deps-sdl2 = "==0.1.*"
 kivy-deps-glew = "==0.1.*"
 kivy = "==1.11.1"
+core = "*"
 
 [requires]
 python_version = "3.7"

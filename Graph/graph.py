@@ -1,11 +1,11 @@
 from functools import partial
-from kivy.core.window import Window
-from kivy.uix.floatlayout import FloatLayout
-from kivy.clock import Clock
-from kivy.properties import ObjectProperty, NumericProperty
-from kivy.uix.widget import Widget
 
+from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.properties import ObjectProperty, NumericProperty
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.widget import Widget
 
 Builder.load_file('Graph/graph.kv')
 

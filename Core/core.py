@@ -1,11 +1,12 @@
 from kivy.config import Config
+
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
-from ..Graph.graph import Graph
-from ..SideBar.sidebar import SideBar
+from Graph.graph import Graph
+from SideBar.sidebar import SideBar
 
 
 class Main(FloatLayout):

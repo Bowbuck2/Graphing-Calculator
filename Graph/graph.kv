@@ -52,6 +52,6 @@
             PushMatrix:
             Translate:
                 y: root.marker_pos - 40 if root.marker_pos else 1
-                x: root.parent.marker_zero - 39 if root.parent else 1
+                x: root.parent.marker_zero - 39 if root.parent else self.parent.x
         canvas.after:
             PopMatrix:
