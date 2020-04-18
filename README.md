@@ -12,6 +12,8 @@ Graphing Calculator using the Kivy Framework!
 
 - Realtime Updating, used for when moving the graph
 
+- Trigonometric Functions
+
 - Graph is Resizable to any window size
 
 - Custom Equation Solver
@@ -31,7 +33,7 @@ Graphing Calculator using the Kivy Framework!
 
 - Install pipenv: `pip install pipenv`
 - Install dependencies: `pipenv sync`
-- Run the program: `python -m "Graphing Calculator"`
+- Run the program: `python  graphing_calc.py`
 
 #### Developers
 
