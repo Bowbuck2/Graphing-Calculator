@@ -1,5 +1,9 @@
 import math
 import re
+from tokenize import TokenError
+
+import sympy
+
 from random import randrange
 
 from kivy.clock import Clock
@@ -11,6 +15,8 @@ from kivy.properties import NumericProperty, StringProperty, ObjectProperty, Lis
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.textinput import TextInput
+from sympy import symbols
+from sympy.parsing.sympy_parser import parse_expr
 
 Builder.load_file('SideBar/sidebar.kv')
 
@@ -58,83 +64,6 @@ class RV(RecycleView):
             self.data.append(equation_input.__dict__())
 
 
-class Solver:
-    def __init__(self, equation: str) -> None:
-        self.operations = {'^': float.__pow__, '*': float.__mul__, '/': float.__truediv__, '+': float.__add__,
-                           '-': float.__sub__, }
-        self.equation = equation.split('=')[1]
-
-    def start(self, **kwargs):
-        eq = list(''.join(self.equation))
-
-        for count, char in enumerate(eq):
-            if char in kwargs.keys():
-                value = kwargs[char]
-                eq[count] = str(value)
-
-        if '(' in eq:
-            right_p, left_p = None, None
-
-            for count, char in enumerate(eq):
-                if char == '(':
-                    left_p = count
-                elif char == ')':
-                    right_p = count + 1
-
-                if right_p and left_p is not None and len(self.equation) != 1:
-                    ans = str(self.solve(eq[left_p:right_p]))
-
-                    eq = eq[:left_p] + eq[right_p:]
-                    eq.insert(left_p, ans)
-
-                    self.equation = eq
-                    self.start(**kwargs)
-                elif len(self.equation) == 1:
-                    return float(self.equation[0])
-        else:
-            return self.solve(eq)
-
-    def solve(self, equation: list):
-        ans = None
-        values = []
-        temp = ''
-        for count, char in enumerate(equation):
-            if char == '-':
-                values.append('-1.0')
-                values.append('*')
-                continue
-
-            if char not in self.operations.keys() and char not in ['(', ')']:
-                temp += char
-            else:
-                values.append(temp)
-                values.append(char)
-                temp = ''
-        if len(temp) != 0:
-            values.append(temp)
-
-        if len(values) == 1:
-            return float(values[0])
-
-        for key, value in self.operations.items():
-            if key in values:
-                index = values.index(key)
-
-                left_value = float(values[index - 1])
-                right_value = float(values[index + 1])
-
-                if right_value < 0.9 and '^' in values:
-                    left_value = abs(left_value)
-
-                ans = value(left_value, right_value)
-
-                values.pop(index + 1)
-                values[index - 1] = ans
-                values.pop(index)
-
-        return ans
-
-
 class Equation(FloatLayout):
     r, g, b = NumericProperty(), NumericProperty(), NumericProperty()
     equation = StringProperty()
@@ -150,6 +79,9 @@ class Equation(FloatLayout):
         self.line = []
         self.data = ListProperty(None)
         self.points = []
+
+        self.expression = None
+        self.cache = {}
 
         self.r, self.g, self.b = round(randrange(1, 255) / 255, 2), round(randrange(1, 255) / 255, 2), round(
             randrange(1, 255) / 255, 2)
@@ -172,9 +104,20 @@ class Equation(FloatLayout):
         for data in self.ctx.data:
             if data['position'] == self.position:
                 data['equation'] = equation_text
-                self.equation = equation_text  # [-]?(\d | \w)
+                self.equation = equation_text
         if re.match(r'(y|x|(f\(x\)))=.+', self.equation.lower()):
             self.remove_line()
+
+            check = list(self.equation.split('=')[1])
+            if '^' in check:
+                idx = check.index('^')
+                check.insert(idx, '**')
+                check.pop(idx + 1)
+
+            try:
+                self.expression = parse_expr(''.join(check))
+            except (SyntaxError, TokenError, ValueError):
+                pass
 
             if self.equation[0] is not 'x':
                 self.create_equation()
@@ -183,6 +126,7 @@ class Equation(FloatLayout):
 
             self.gen_line()
         else:
+            self.cache = {}
             self.remove_line()
 
     def create_equation(self):
@@ -201,7 +145,7 @@ class Equation(FloatLayout):
             {'parent_pos': parent_data_x[-1]['parent_pos'] + 60, 'key_value': parent_data_x[-1]['key_value'] + 1})
 
         count = 0
-        for x_pos in range(0, Window.width, 5):
+        for x_pos in range(0, Window.width, 10):
             x_pos_updated = x_pos + self.graph.x
             try:
                 if x_pos_updated <= parent_data_x[count].get('parent_pos'):
@@ -227,8 +171,14 @@ class Equation(FloatLayout):
         """
         parent_pos_y = None
 
-        solver = Solver(self.equation)
-        y_value = solver.start(x=x_value)
+        cache_check = self.cache.get(x_value, None)
+        if cache_check is not None:
+            y_value = cache_check
+        else:
+            x, y, z = symbols('x y z')
+            y_value = self.expression.subs(x, x_value)
+            self.cache[x_value] = y_value
+
         parent_key_value_y = math.ceil(y_value)
 
         for marker in self.axis_y.children:
@@ -242,15 +192,12 @@ class Equation(FloatLayout):
 
         y_pos = (parent_pos_y - (abs(parent_key_value_y - y_value) * 60))
 
-        print(f'At {x_value}, Our y-value is {y_value}')
         return parent_pos_y, y_pos, y_value, parent_key_value_y
 
     def vert_equation(self):
         try:
             parent_pos = None
-
-            solver = Solver(self.equation)
-            x_value = solver.start()
+            x_value = self.expression
             parent_value = math.ceil(x_value)
 
             for marker in self.axis_x.children:
@@ -262,8 +209,7 @@ class Equation(FloatLayout):
             value = parent_pos - value_pos
 
             self.data.append(
-                {'x_pos': value, 'y_pos': self.graph.y, 'parent_pos_x': parent_pos, 'parent_pos_y': parent_pos})
-            self.data.append(
+                {'x_pos': value, 'y_pos': self.graph.y, 'parent_pos_x': parent_pos, 'parent_pos_y': parent_pos},
                 {'x_pos': value, 'y_pos': self.graph.height, 'parent_pos_x': parent_pos, 'parent_pos_y': parent_pos})
 
         except TypeError:
